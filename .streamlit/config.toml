@@ -1,6 +1,0 @@
-[theme]
-primaryColor = "#2E8B57"   # ボタンや強調色（シーグリーン）
-backgroundColor = "#FFFFFF" # 背景色
-secondaryBackgroundColor = "#F0F8FF" # サイドバーや入力欄の背景（薄い青）
-textColor = "#333333"       # 文字色
-font = "sans serif"         # フォント
