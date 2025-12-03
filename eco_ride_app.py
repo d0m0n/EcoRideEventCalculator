@@ -8,25 +8,23 @@ import re
 from streamlit_gsheets import GSheetsConnection
 
 # --- 設定・定数 ---
-# 根拠: 環境省等の排出係数(ガソリン2.32kg-CO2/L, 軽油2.58kg-CO2/L)を
-# 一般的な実燃費(e燃費等の平均値を参考に設定)で割って算出
-# 変更: 視認性向上のため区切り文字を「/」から「|」に変更
+# キー名を「車種 | 燃費」の形式に統一しました
 CO2_EMISSION_FACTORS = {
-    "ガソリン車 (普通 | 14km/L)": 166,
-    "ガソリン車 (大型・ミニバン | 9km/L)": 258,
-    "軽自動車 (16km/L)": 145,
-    "ディーゼル車 (13km/L)": 198,
-    "ハイブリッド車 (22km/L)": 105,
-    "電気自動車 (EV | 走行時ゼロ)": 0,
+    "ガソリン車 (普通) | 14km/L": 166,
+    "ガソリン車 (大型・ミニバン) | 9km/L": 258,
+    "軽自動車 | 16km/L": 145,
+    "ディーゼル車 | 13km/L": 198,
+    "ハイブリッド車 | 22km/L": 105,
+    "電気自動車 (EV) | 走行時ゼロ": 0,
 }
 
 MAX_CAPACITY = {
-    "ガソリン車 (普通 | 14km/L)": 5,
-    "ガソリン車 (大型・ミニバン | 9km/L)": 8,
-    "軽自動車 (16km/L)": 4,
-    "ディーゼル車 (13km/L)": 5,
-    "ハイブリッド車 (22km/L)": 5,
-    "電気自動車 (EV | 走行時ゼロ)": 5,
+    "ガソリン車 (普通) | 14km/L": 5,
+    "ガソリン車 (大型・ミニバン) | 9km/L": 8,
+    "軽自動車 | 16km/L": 4,
+    "ディーゼル車 | 13km/L": 5,
+    "ハイブリッド車 | 22km/L": 5,
+    "電気自動車 (EV) | 走行時ゼロ": 5,
 }
 
 # ページ設定
@@ -119,19 +117,12 @@ def calculate_emissions(df_participants, current_event_id):
     for index, row in df_p.iterrows():
         c_type = row.get('car_type', "")
         
-        # 旧データ("/")と新データ("|")の両方に対応するためのフォールバック処理
         if c_type in CO2_EMISSION_FACTORS:
             factor = CO2_EMISSION_FACTORS[c_type]
             capacity = MAX_CAPACITY[c_type]
         else:
-            # 部分一致検索（旧データの救済）
-            matched = False
-            for key in CO2_EMISSION_FACTORS.keys():
-                # "ガソリン車 (普通" の部分が一致していれば採用する等の簡易ロジック
-                # ここでは安全のためデフォルト値を設定
-                pass
-            
-            factor = 166 # デフォルト値
+            # キー不一致時のフォールバック（デフォルト値を設定）
+            factor = 166
             capacity = 5
         
         try:
@@ -145,6 +136,14 @@ def calculate_emissions(df_participants, current_event_id):
             continue
             
     return total_solo, total_share, df_p
+
+# --- 車種情報の分割表示用関数 ---
+def split_car_info(car_str):
+    """車種文字列 '車種 | 燃費' を分割して返す"""
+    if isinstance(car_str, str) and "|" in car_str:
+        parts = car_str.split("|")
+        return parts[0].strip(), parts[1].strip()
+    return car_str, "-"
 
 # --- ライブモニター用フラグメント ---
 @st.fragment(run_every=10)
@@ -175,11 +174,24 @@ def show_live_monitor(current_event_id):
                         textfont=dict(size=40, color='white', family="Arial Black"))
     st.plotly_chart(fig, use_container_width=True)
     
-    # --- リスト表示 ---
+    # --- リスト表示（列分割処理） ---
     st.markdown("#### 📋 最新の参加者リスト")
+    
+    # 必要な列をコピー
     display_df = df_p[["name", "start_point", "people", "car_type", "distance"]].copy()
+    
+    # 住所の加工（市町村まで）
     display_df["start_point"] = display_df["start_point"].apply(get_city_level_address)
-    display_df.columns = ["グループ名", "出発地(市町村)", "人数", "車種", "距離(km)"]
+    
+    # 車種情報の分割（車種名と燃費目安に分ける）
+    split_data = display_df["car_type"].apply(split_car_info)
+    display_df["car_name"] = [x[0] for x in split_data]
+    display_df["car_eff"] = [x[1] for x in split_data]
+    
+    # 列の並び替えとリネーム
+    display_df = display_df[["name", "start_point", "people", "car_name", "car_eff", "distance"]]
+    display_df.columns = ["グループ名", "出発地(市町村)", "人数", "車種", "燃費目安", "距離(km)"]
+    
     st.dataframe(display_df.iloc[::-1], use_container_width=True, hide_index=True)
 
 
@@ -284,7 +296,6 @@ else:
             """)
             data_items = [{"車種設定": k, "設定排出係数": v} for k, v in CO2_EMISSION_FACTORS.items()]
             st.table(pd.DataFrame(data_items))
-            # 修正したリンク
             st.caption("出典: [環境省_算定方法・排出係数一覧 |「温室効果ガス排出量 算定・報告・公表制度」ウェブサイト](https://policies.env.go.jp/earth/ghg-santeikohyo/calc.html)")
 
         st.sidebar.title("メニュー")
@@ -364,7 +375,6 @@ else:
                                 p_n = st.text_input("名", value=row['name'])
                                 p_p = st.number_input("人", 1, 10, int(row['people']))
                                 
-                                # 新旧キーの不一致対策
                                 current_car = row['car_type']
                                 car_idx = 0
                                 if current_car in car_keys:
