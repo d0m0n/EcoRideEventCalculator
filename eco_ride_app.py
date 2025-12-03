@@ -8,9 +8,6 @@ import re
 from streamlit_gsheets import GSheetsConnection
 
 # --- 設定・定数 ---
-# 根拠: 環境省等の排出係数(ガソリン2.32kg-CO2/L, 軽油2.58kg-CO2/L)を
-# 一般的な実燃費(e燃費等の平均値を参考に設定)で割って算出
-# 形式: "車種名 | 燃費目安"
 CO2_EMISSION_FACTORS = {
     "ガソリン車 (普通) | 14km/L": 166,
     "ガソリン車 (大型・ミニバン) | 9km/L": 258,
@@ -32,64 +29,68 @@ MAX_CAPACITY = {
 # ページ設定
 st.set_page_config(page_title="イベント相乗りCO2削減シミュレーター", layout="wide")
 
-# --- カスタムCSSの注入（テーマカラー強制適用版） ---
+# --- カスタムCSSの注入（グレー系・シャドウなし） ---
 st.markdown("""
 <style>
     /* 全体のフォントとベースカラー */
     html, body, [class*="css"] {
         font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
-        color: #333333;
+        color: #333333; /* 基本の文字色（濃いグレー） */
     }
     
-    /* ヘッダー (h1, h2, h3) を緑色にする */
+    /* ヘッダー (h1, h2, h3) の設定 */
     h1, h2, h3 {
-        color: #2E8B57 !important; /* シーグリーン */
+        color: #424242 !important; /* より濃いグレー */
         font-weight: 800;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        /* text-shadow は削除しました */
     }
     
-    /* ボタン (Primary/Secondary両方) を緑色にカスタマイズ */
+    /* ボタンのカスタマイズ（グレー系） */
     .stButton > button {
-        background-color: #2E8B57 !important;
+        background-color: #616161 !important; /* 濃いグレー */
         color: white !important;
         border: none;
-        border-radius: 20px;
+        border-radius: 8px; /* 角丸を少し控えめに */
         font-weight: bold;
         padding: 0.5rem 2rem;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
     }
     .stButton > button:hover {
-        background-color: #3CB371 !important; /* ホバー時は少し明るく */
-        transform: scale(1.02);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        background-color: #757575 !important; /* ホバー時は少し明るく */
+        transform: scale(1.01);
+        /* box-shadow は削除しました */
     }
 
-    /* 削除ボタンなどのSecondaryボタンは赤系にする（例外処理） */
+    /* 削除ボタンなどは赤系のまま維持（アクセント） */
     button[kind="primary"] {
-         background-color: #FF6B6B !important;
+         background-color: #D32F2F !important; /* 落ち着いた赤 */
+    }
+    button[kind="primary"]:hover {
+         background-color: #E53935 !important;
     }
 
-    /* メトリクス（数字）の背景をカード化 */
+    /* メトリクス（数字）の背景をシンプルなカード化 */
     div[data-testid="stMetric"] {
         background-color: #ffffff;
         border: 1px solid #e0e0e0;
         padding: 15px;
-        border-radius: 10px;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+        border-radius: 8px;
+        /* シャドウを削除しフラットに */
         text-align: center;
     }
     
     /* Expanderのヘッダー */
     .streamlit-expanderHeader {
-        background-color: #f0f8ff; /* 薄い青背景 */
-        color: #2E8B57;
+        background-color: #f5f5f5; /* 非常に薄いグレー */
+        color: #424242;
         font-weight: bold;
         border-radius: 5px;
     }
     
-    /* サイドバーの背景色（簡易的な指定） */
+    /* サイドバーの背景色 */
     section[data-testid="stSidebar"] {
-        background-color: #F5FFFA; /* ミントクリーム */
+        background-color: #fafafa; /* ほぼ白に近いグレー */
+        border-right: 1px solid #eeeeee;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -97,12 +98,9 @@ st.markdown("""
 # --- 関数群 ---
 
 def get_city_level_address(address):
-    """プライバシー保護のため、住所から市町村レベルまでを抽出"""
     if not isinstance(address, str):
         return str(address)
-    # API由来の「日本、〒...」を除去
     clean_addr = re.sub(r'日本、\s*〒\d{3}-\d{4}\s*', '', address)
-    # 都道府県+市区町村 を抽出
     match = re.search(r'(.+?[都道府県])(.+?[市区町村])', clean_addr)
     if match:
         return match.group(0)
@@ -164,10 +162,6 @@ def update_sheet_data(worksheet_name, df):
     conn.update(worksheet=worksheet_name, data=df)
 
 def calculate_stats(df_participants, current_event_id):
-    """
-    CO2削減量と、車両台数・人数などの統計情報を計算して返す関数
-    戻り値: total_solo_co2, total_share_co2, actual_cars, total_people, df_p
-    """
     if df_participants.empty or "event_id" not in df_participants.columns:
         return None, None, 0, 0, pd.DataFrame()
 
@@ -187,53 +181,36 @@ def calculate_stats(df_participants, current_event_id):
     
     for index, row in df_p.iterrows():
         c_type = row.get('car_type', "")
-        
-        # 新旧キー対応ロジック
         if c_type in CO2_EMISSION_FACTORS:
             factor = CO2_EMISSION_FACTORS[c_type]
             capacity = MAX_CAPACITY[c_type]
         else:
-            # マッチしない場合のデフォルト値（普通車相当）
             factor = 166
             capacity = 5
-        
         try:
             dist = float(row['distance'])
             ppl = int(row['people'])
-            
-            # 車両台数の計算（相乗り時）
             cars = math.ceil(ppl / capacity)
-            
-            # CO2排出量
             solo = ppl * dist * factor * 2
             share = cars * dist * factor * 2
-            
             total_solo += solo
             total_share += share
             total_actual_cars += cars
             total_people += ppl
-            
         except:
             continue
             
     return total_solo, total_share, total_actual_cars, total_people, df_p
 
 def split_car_info(car_str):
-    """車種文字列から燃費を抽出する（新旧データ対応版）"""
     if not isinstance(car_str, str):
         return str(car_str), "-"
-
-    # パターン1: 新しい形式 "車種 | 燃費"
     if "|" in car_str:
         parts = car_str.split("|")
         return parts[0].strip(), parts[1].strip()
-
-    # パターン2: 古い形式 "車種 (燃費)"
     match = re.search(r'(.+?)[\s\（\(]+(.+?km/L)[\)\）]', car_str)
     if match:
         return match.group(1).strip(), match.group(2).strip()
-
-    # パターン3: 燃費情報なし
     return car_str, "-"
 
 # --- ライブモニター用フラグメント ---
@@ -249,61 +226,44 @@ def show_live_monitor(current_event_id):
         st.info("現在、参加者は登録されていません。待機中...")
         return
 
-    # --- メトリクス表示 ---
     col1, col2, col3 = st.columns(3)
-    
-    # CO2削減量
     reduction_kg = (total_solo - total_share) / 1000
     col1.metric("みんなの総CO2削減量", f"{reduction_kg:.2f} kg-CO2")
-    
-    # 相乗り率（平均乗車人数）
     occupancy_rate = total_people / actual_cars if actual_cars > 0 else 0
     col2.metric("平均相乗り率 (人/台)", f"{occupancy_rate:.2f} 人")
-    
-    # 杉の木換算
     col3.success(f"🌲 杉の木 約 {reduction_kg / 14:.1f} 本分の年間吸収量！")
     
-    # --- グラフ表示 ---
     chart_data = pd.DataFrame({
         "シナリオ": ["全員ソロ移動", "相乗り移動"],
         "CO2排出量 (kg)": [total_solo/1000, total_share/1000]
     })
+    # グラフの色もグレー基調に変更（アクセントで元の色を残す）
     fig = px.bar(chart_data, x="シナリオ", y="CO2排出量 (kg)", 
-                    color="シナリオ", color_discrete_sequence=["#FF6B6B", "#4ECDC4"],
+                    color="シナリオ", 
+                    # color_discrete_sequence=["#9E9E9E", "#616161"], # 完全モノトーンの場合
+                    color_discrete_sequence=["#FF6B6B", "#4ECDC4"], # グラフだけ元の色を残す場合
                     text="CO2排出量 (kg)")
     
-    # グラフのデザイン調整（背景透過など）
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         showlegend=False,
-        yaxis=dict(showgrid=True, gridcolor='#eee'),
-        font=dict(family="Arial", size=14)
+        yaxis=dict(showgrid=True, gridcolor='#eeeeee'),
+        font=dict(family="Arial", size=14, color="#424242")
     )
     
     fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside',
                         textfont=dict(size=40, color='white', family="Arial Black"))
     st.plotly_chart(fig, use_container_width=True)
     
-    # --- リスト表示 ---
     st.markdown("#### 📋 最新の参加者リスト")
-    
-    # 表示用データの作成
     display_df = df_p[["name", "start_point", "people", "car_type", "distance"]].copy()
-    
-    # 住所加工
     display_df["start_point"] = display_df["start_point"].apply(get_city_level_address)
-    
-    # 車種・燃費分割
     split_data = display_df["car_type"].apply(split_car_info)
     display_df["car_name"] = [x[0] for x in split_data]
     display_df["car_eff"] = [x[1] for x in split_data]
-    
-    # 列整理
     display_df = display_df[["name", "start_point", "people", "car_name", "car_eff", "distance"]]
     display_df.columns = ["グループ名", "出発地(市町村)", "人数", "車種", "燃費目安", "距離(km)"]
-    
-    # 【修正箇所】use_container_width=True を width="stretch" に変更
     st.dataframe(display_df.iloc[::-1], width="stretch", hide_index=True)
 
 
@@ -474,13 +434,12 @@ else:
                 fig = px.bar(c_data, x="シナリオ", y="CO2", color="シナリオ", 
                              color_discrete_sequence=["#FF6B6B", "#4ECDC4"], text="CO2")
                 
-                # グラフのデザイン調整
                 fig.update_layout(
                     plot_bgcolor="rgba(0,0,0,0)",
                     paper_bgcolor="rgba(0,0,0,0)",
                     showlegend=False,
-                    yaxis=dict(showgrid=True, gridcolor='#eee'),
-                    font=dict(family="Arial", size=14)
+                    yaxis=dict(showgrid=True, gridcolor='#eeeeee'),
+                    font=dict(family="Arial", size=14, color="#424242")
                 )
 
                 fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside', 
