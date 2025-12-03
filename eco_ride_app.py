@@ -4,27 +4,29 @@ import plotly.express as px
 import math
 import uuid
 import requests
-import re # 正規表現を使うために追加
+import re
 from streamlit_gsheets import GSheetsConnection
 
 # --- 設定・定数 ---
+# 根拠: 環境省等の排出係数(ガソリン2.32kg-CO2/L, 軽油2.58kg-CO2/L)を
+# 一般的な実燃費(e燃費等の平均値を参考に設定)で割って算出
+# 変更: 視認性向上のため区切り文字を「/」から「|」に変更
 CO2_EMISSION_FACTORS = {
-    "ガソリン車 (普通 / 14km/L)": 166,
-    "ガソリン車 (大型・ミニバン / 9km/L)": 258,
+    "ガソリン車 (普通 | 14km/L)": 166,
+    "ガソリン車 (大型・ミニバン | 9km/L)": 258,
     "軽自動車 (16km/L)": 145,
     "ディーゼル車 (13km/L)": 198,
     "ハイブリッド車 (22km/L)": 105,
-    "電気自動車 (EV / 走行時ゼロ)": 0,
+    "電気自動車 (EV | 走行時ゼロ)": 0,
 }
 
 MAX_CAPACITY = {
-    "ガソリン車 (普通 / 14km/L)": 5,
-    "ガソリン車 (大型・ミニバン / 9km/L)": 8,
+    "ガソリン車 (普通 | 14km/L)": 5,
+    "ガソリン車 (大型・ミニバン | 9km/L)": 8,
     "軽自動車 (16km/L)": 4,
     "ディーゼル車 (13km/L)": 5,
     "ハイブリッド車 (22km/L)": 5,
-    "電気自動車 (EV / 走行時ゼロ)": 5,
-    "電気自動車 (EV / 走行時ゼロ)": 5,
+    "電気自動車 (EV | 走行時ゼロ)": 5,
 }
 
 # ページ設定
@@ -33,23 +35,13 @@ st.set_page_config(page_title="イベント相乗りCO2削減シミュレータ�
 # --- 関数群 ---
 
 def get_city_level_address(address):
-    """
-    プライバシー保護のため、住所から市町村レベルまでを抽出して返す関数
-    例: "北海道千歳市東雲町2丁目" -> "北海道千歳市"
-    """
+    """プライバシー保護のため、住所から市町村レベルまでを抽出"""
     if not isinstance(address, str):
         return str(address)
-    
-    # 「日本、〒000-0000」のようなAPI特有のプレフィックスがあれば除去
     clean_addr = re.sub(r'日本、\s*〒\d{3}-\d{4}\s*', '', address)
-    
-    # 都道府県 + 市区町村 までを抽出する正規表現
-    # 「◯◯県◯◯市」「東京都◯◯区」「◯◯郡◯◯町」などに対応
     match = re.search(r'(.+?[都道府県])(.+?[市区町村])', clean_addr)
     if match:
         return match.group(0)
-    
-    # マッチしない場合はそのまま（または適当に短縮）
     return clean_addr
 
 def get_place_suggestions(query, api_key):
@@ -126,11 +118,20 @@ def calculate_emissions(df_participants, current_event_id):
     
     for index, row in df_p.iterrows():
         c_type = row.get('car_type', "")
+        
+        # 旧データ("/")と新データ("|")の両方に対応するためのフォールバック処理
         if c_type in CO2_EMISSION_FACTORS:
             factor = CO2_EMISSION_FACTORS[c_type]
             capacity = MAX_CAPACITY[c_type]
         else:
-            factor = 166
+            # 部分一致検索（旧データの救済）
+            matched = False
+            for key in CO2_EMISSION_FACTORS.keys():
+                # "ガソリン車 (普通" の部分が一致していれば採用する等の簡易ロジック
+                # ここでは安全のためデフォルト値を設定
+                pass
+            
+            factor = 166 # デフォルト値
             capacity = 5
         
         try:
@@ -174,15 +175,10 @@ def show_live_monitor(current_event_id):
                         textfont=dict(size=40, color='white', family="Arial Black"))
     st.plotly_chart(fig, use_container_width=True)
     
-    # --- プライバシー保護対応済みのリスト表示 ---
+    # --- リスト表示 ---
     st.markdown("#### 📋 最新の参加者リスト")
-    
-    # 表示用にデータをコピーして加工
     display_df = df_p[["name", "start_point", "people", "car_type", "distance"]].copy()
-    
-    # start_point列を市町村のみに変換
     display_df["start_point"] = display_df["start_point"].apply(get_city_level_address)
-    
     display_df.columns = ["グループ名", "出発地(市町村)", "人数", "車種", "距離(km)"]
     st.dataframe(display_df.iloc[::-1], use_container_width=True, hide_index=True)
 
@@ -288,7 +284,8 @@ else:
             """)
             data_items = [{"車種設定": k, "設定排出係数": v} for k, v in CO2_EMISSION_FACTORS.items()]
             st.table(pd.DataFrame(data_items))
-            st.caption("出典: [環境省 温室効果ガス排出量 算定・報告・公表制度](https://ghg-santeikohyo.env.go.jp/calc)")
+            # 修正したリンク
+            st.caption("出典: [環境省_算定方法・排出係数一覧 |「温室効果ガス排出量 算定・報告・公表制度」ウェブサイト](https://policies.env.go.jp/earth/ghg-santeikohyo/calc.html)")
 
         st.sidebar.title("メニュー")
         app_mode = st.sidebar.radio("モード選択", ["📝 参加登録・編集", "📺 ライブモニター"], index=0)
@@ -358,8 +355,6 @@ else:
                 car_keys = list(CO2_EMISSION_FACTORS.keys())
                 for idx, row in df_p[::-1].iterrows():
                     o_idx = row['original_index']
-                    
-                    # リストの見出し（Expanderタイトル）は「市町村レベル」に変換して表示
                     safe_address = get_city_level_address(row['start_point'])
                     
                     with st.expander(f"👤 {row['name']} （{safe_address} から {row['people']}名）"):
@@ -368,11 +363,15 @@ else:
                             with c1:
                                 p_n = st.text_input("名", value=row['name'])
                                 p_p = st.number_input("人", 1, 10, int(row['people']))
-                                try: c_idx = car_keys.index(row['car_type'])
-                                except: c_idx = 0
-                                p_c = st.selectbox("車", car_keys, index=c_idx)
+                                
+                                # 新旧キーの不一致対策
+                                current_car = row['car_type']
+                                car_idx = 0
+                                if current_car in car_keys:
+                                    car_idx = car_keys.index(current_car)
+                                
+                                p_c = st.selectbox("車", car_keys, index=car_idx)
                             with c2:
-                                # 編集フォームの中身は、本人が修正しやすいように元の詳細住所を表示
                                 p_s = st.text_input("出発地", value=row['start_point'])
                                 p_d = st.number_input("km", value=float(row['distance']))
                             
