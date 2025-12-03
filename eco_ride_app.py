@@ -29,7 +29,7 @@ MAX_CAPACITY = {
 # ページ設定
 st.set_page_config(page_title="イベント相乗りCO2削減シミュレーター", layout="wide")
 
-# --- カスタムCSSの注入（アイコン修正版） ---
+# --- カスタムCSSの注入 ---
 st.markdown("""
 <head>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,7 +38,7 @@ st.markdown("""
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <style>
-    /* 1. 基本フォント設定 (Noto Sans JP) */
+    /* 全体フォント設定 */
     html, body, [class*="css"], .stApp {
         font-family: 'Noto Sans JP', sans-serif !important;
         color: #333333;
@@ -46,42 +46,31 @@ st.markdown("""
         letter-spacing: 0.03em !important;
     }
     
-    /* 2. アイコンの文字化け（keyboard_arrow_right）を防ぐ設定 */
-    /* Material Icons クラスを持つ要素、または特定のSVGラッパー内のテキストには専用フォントを適用 */
-    .material-icons, 
-    [data-testid="stExpander"] svg, 
-    .st-emotion-cache-164 nlkn, /* Streamlitの内部クラス名対策 */
-    i {
+    /* アイコンの文字化け対策 */
+    .material-icons, [data-testid="stExpander"] svg, i {
         font-family: 'Material Icons' !important;
-        font-style: normal;
-        font-weight: normal;
-        font-variant: normal;
-        text-transform: none;
-        line-height: 1;
-        letter-spacing: normal;
-        word-wrap: normal;
-        white-space: nowrap;
-        direction: ltr;
     }
 
     /* ヘッダー */
     h1, h2, h3 {
-        font-family: 'Noto Sans JP', sans-serif !important;
         font-weight: 700 !important;
         color: #424242 !important;
         padding-bottom: 0.5rem;
     }
     
-    /* Expander（ドロップダウン） */
+    /* Expander */
     .streamlit-expanderHeader {
         background-color: #f5f5f5;
         border-radius: 6px;
         font-weight: 700;
         color: #424242;
         font-size: 1rem !important;
-        font-family: 'Noto Sans JP', sans-serif !important;
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 1rem !important;
     }
-    
+    .streamlit-expanderHeader p { margin: 0 !important; font-family: 'Noto Sans JP', sans-serif !important; }
+
     /* ボタン */
     .stButton > button {
         font-family: 'Noto Sans JP', sans-serif !important;
@@ -247,12 +236,29 @@ def show_live_monitor(current_event_id):
     col2.metric("平均相乗り率 (人/台)", f"{occupancy_rate:.2f} 人")
     col3.success(f"🌲 杉の木 約 {reduction_kg / 14:.1f} 本分の年間吸収量！")
     
-    c_data = pd.DataFrame({"シナリオ": ["全員ソロ移動", "相乗り移動"], "CO2排出量 (kg)": [total_solo/1000, total_share/1000]})
-    fig = px.bar(c_data, x="シナリオ", y="CO2排出量 (kg)", color="シナリオ", 
-                 color_discrete_sequence=["#B0BEC5", "#546E7A"], text="CO2排出量 (kg)")
-    fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
-                      yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'), font=dict(family="Noto Sans JP", size=14))
-    fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside', textfont=dict(size=40, color='white', family="Noto Sans JP"))
+    # グラフデータ
+    chart_data = pd.DataFrame({
+        "シナリオ": ["全員ソロ移動", "相乗り移動"],
+        "CO2排出量 (kg)": [total_solo/1000, total_share/1000]
+    })
+    
+    # 【修正】色設定：ソロ=赤(#EF5350), 相乗り=緑(#66BB6A)
+    fig = px.bar(chart_data, x="シナリオ", y="CO2排出量 (kg)", 
+                    color="シナリオ", 
+                    color_discrete_sequence=["#EF5350", "#66BB6A"], 
+                    text="CO2排出量 (kg)")
+    
+    fig.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,
+        yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'),
+        font=dict(family="Noto Sans JP", size=14)
+    )
+    
+    # 【修正】数字を太字(<b>タグ)で表示
+    fig.update_traces(texttemplate='<b>%{y:.1f} kg</b>', textposition='inside',
+                        textfont=dict(size=40, color='white', family="Noto Sans JP"))
     st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("#### 📋 最新の参加者リスト")
@@ -428,10 +434,22 @@ else:
                 col3.info(f"現在の実稼働台数: {actual_cars} 台")
                 
                 c_data = pd.DataFrame({"シナリオ": ["全員ソロ", "相乗り"], "CO2": [total_solo/1000, total_share/1000]})
-                fig = px.bar(c_data, x="シナリオ", y="CO2", color="シナリオ", color_discrete_sequence=["#B0BEC5", "#546E7A"], text="CO2")
-                fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
-                                  yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'), font=dict(family="Noto Sans JP", size=14))
-                fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside', textfont=dict(size=30, color='white', family="Noto Sans JP"))
+                
+                # 【修正】色設定：ソロ=赤, 相乗り=緑
+                fig = px.bar(c_data, x="シナリオ", y="CO2", color="シナリオ", 
+                             color_discrete_sequence=["#EF5350", "#66BB6A"], text="CO2")
+                
+                fig.update_layout(
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    showlegend=False,
+                    yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'),
+                    font=dict(family="Noto Sans JP", size=14)
+                )
+
+                # 【修正】数字を太字(<b>タグ)で表示
+                fig.update_traces(texttemplate='<b>%{y:.1f} kg</b>', textposition='inside', 
+                                  textfont=dict(size=30, color='white', family="Noto Sans JP"))
                 st.plotly_chart(fig, use_container_width=True)
 
                 st.markdown("#### 🛠 登録内容の修正・削除")
