@@ -31,15 +31,44 @@ MAX_CAPACITY = {
 
 # ページ設定
 st.set_page_config(page_title="イベント相乗りCO2削減シミュレーター", layout="wide")
-# --- カスタムCSS
-# の注入 ---
+
+# --- カスタムCSSの注入（テーマカラー強制適用版） ---
 st.markdown("""
 <style>
-    /* 全体のフォント調整 */
+    /* 全体のフォントとベースカラー */
     html, body, [class*="css"] {
         font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+        color: #333333;
     }
     
+    /* ヘッダー (h1, h2, h3) を緑色にする */
+    h1, h2, h3 {
+        color: #2E8B57 !important; /* シーグリーン */
+        font-weight: 800;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    /* ボタン (Primary/Secondary両方) を緑色にカスタマイズ */
+    .stButton > button {
+        background-color: #2E8B57 !important;
+        color: white !important;
+        border: none;
+        border-radius: 20px;
+        font-weight: bold;
+        padding: 0.5rem 2rem;
+        transition: all 0.3s ease;
+    }
+    .stButton > button:hover {
+        background-color: #3CB371 !important; /* ホバー時は少し明るく */
+        transform: scale(1.02);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    /* 削除ボタンなどのSecondaryボタンは赤系にする（例外処理） */
+    button[kind="primary"] {
+         background-color: #FF6B6B !important;
+    }
+
     /* メトリクス（数字）の背景をカード化 */
     div[data-testid="stMetric"] {
         background-color: #ffffff;
@@ -50,24 +79,17 @@ st.markdown("""
         text-align: center;
     }
     
-    /* ボタンを角丸にする */
-    .stButton>button {
-        border-radius: 20px;
-        font-weight: bold;
-        padding: 0.5rem 2rem;
-    }
-    
-    /* ヘッダーの装飾 */
-    h1 {
-        color: #2E8B57;
-        font-weight: 800;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-    }
-    
-    /* Expanderの見た目を少しリッチに */
+    /* Expanderのヘッダー */
     .streamlit-expanderHeader {
-        background-color: #f8f9fa;
+        background-color: #f0f8ff; /* 薄い青背景 */
+        color: #2E8B57;
+        font-weight: bold;
         border-radius: 5px;
+    }
+    
+    /* サイドバーの背景色（簡易的な指定） */
+    section[data-testid="stSidebar"] {
+        background-color: #F5FFFA; /* ミントクリーム */
     }
 </style>
 """, unsafe_allow_html=True)
@@ -78,7 +100,9 @@ def get_city_level_address(address):
     """プライバシー保護のため、住所から市町村レベルまでを抽出"""
     if not isinstance(address, str):
         return str(address)
+    # API由来の「日本、〒...」を除去
     clean_addr = re.sub(r'日本、\s*〒\d{3}-\d{4}\s*', '', address)
+    # 都道府県+市区町村 を抽出
     match = re.search(r'(.+?[都道府県])(.+?[市区町村])', clean_addr)
     if match:
         return match.group(0)
@@ -164,10 +188,12 @@ def calculate_stats(df_participants, current_event_id):
     for index, row in df_p.iterrows():
         c_type = row.get('car_type', "")
         
+        # 新旧キー対応ロジック
         if c_type in CO2_EMISSION_FACTORS:
             factor = CO2_EMISSION_FACTORS[c_type]
             capacity = MAX_CAPACITY[c_type]
         else:
+            # マッチしない場合のデフォルト値（普通車相当）
             factor = 166
             capacity = 5
         
@@ -193,15 +219,21 @@ def calculate_stats(df_participants, current_event_id):
     return total_solo, total_share, total_actual_cars, total_people, df_p
 
 def split_car_info(car_str):
-    """車種文字列から燃費を抽出する"""
+    """車種文字列から燃費を抽出する（新旧データ対応版）"""
     if not isinstance(car_str, str):
         return str(car_str), "-"
+
+    # パターン1: 新しい形式 "車種 | 燃費"
     if "|" in car_str:
         parts = car_str.split("|")
         return parts[0].strip(), parts[1].strip()
+
+    # パターン2: 古い形式 "車種 (燃費)"
     match = re.search(r'(.+?)[\s\（\(]+(.+?km/L)[\)\）]', car_str)
     if match:
         return match.group(1).strip(), match.group(2).strip()
+
+    # パターン3: 燃費情報なし
     return car_str, "-"
 
 # --- ライブモニター用フラグメント ---
@@ -239,21 +271,40 @@ def show_live_monitor(current_event_id):
     fig = px.bar(chart_data, x="シナリオ", y="CO2排出量 (kg)", 
                     color="シナリオ", color_discrete_sequence=["#FF6B6B", "#4ECDC4"],
                     text="CO2排出量 (kg)")
+    
+    # グラフのデザイン調整（背景透過など）
+    fig.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,
+        yaxis=dict(showgrid=True, gridcolor='#eee'),
+        font=dict(family="Arial", size=14)
+    )
+    
     fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside',
                         textfont=dict(size=40, color='white', family="Arial Black"))
     st.plotly_chart(fig, use_container_width=True)
     
     # --- リスト表示 ---
     st.markdown("#### 📋 最新の参加者リスト")
+    
+    # 表示用データの作成
     display_df = df_p[["name", "start_point", "people", "car_type", "distance"]].copy()
+    
+    # 住所加工
     display_df["start_point"] = display_df["start_point"].apply(get_city_level_address)
+    
+    # 車種・燃費分割
     split_data = display_df["car_type"].apply(split_car_info)
     display_df["car_name"] = [x[0] for x in split_data]
     display_df["car_eff"] = [x[1] for x in split_data]
     
+    # 列整理
     display_df = display_df[["name", "start_point", "people", "car_name", "car_eff", "distance"]]
     display_df.columns = ["グループ名", "出発地(市町村)", "人数", "車種", "燃費目安", "距離(km)"]
-    st.dataframe(display_df.iloc[::-1], use_container_width=True, hide_index=True)
+    
+    # 【修正箇所】use_container_width=True を width="stretch" に変更
+    st.dataframe(display_df.iloc[::-1], width="stretch", hide_index=True)
 
 
 # --- メイン処理 ---
@@ -422,6 +473,16 @@ else:
                 c_data = pd.DataFrame({"シナリオ": ["全員ソロ", "相乗り"], "CO2": [total_solo/1000, total_share/1000]})
                 fig = px.bar(c_data, x="シナリオ", y="CO2", color="シナリオ", 
                              color_discrete_sequence=["#FF6B6B", "#4ECDC4"], text="CO2")
+                
+                # グラフのデザイン調整
+                fig.update_layout(
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    showlegend=False,
+                    yaxis=dict(showgrid=True, gridcolor='#eee'),
+                    font=dict(family="Arial", size=14)
+                )
+
                 fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside', 
                                   textfont=dict(size=30, color='white', family="Arial Black"))
                 st.plotly_chart(fig, use_container_width=True)
