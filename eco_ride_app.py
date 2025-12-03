@@ -8,7 +8,9 @@ import re
 from streamlit_gsheets import GSheetsConnection
 
 # --- 設定・定数 ---
-# キー名を「車種 | 燃費」の形式に統一しました
+# 根拠: 環境省等の排出係数(ガソリン2.32kg-CO2/L, 軽油2.58kg-CO2/L)を
+# 一般的な実燃費(e燃費等の平均値を参考に設定)で割って算出
+# 形式: "車種名 | 燃費目安"
 CO2_EMISSION_FACTORS = {
     "ガソリン車 (普通) | 14km/L": 166,
     "ガソリン車 (大型・ミニバン) | 9km/L": 258,
@@ -36,7 +38,9 @@ def get_city_level_address(address):
     """プライバシー保護のため、住所から市町村レベルまでを抽出"""
     if not isinstance(address, str):
         return str(address)
+    # API由来の「日本、〒...」を除去
     clean_addr = re.sub(r'日本、\s*〒\d{3}-\d{4}\s*', '', address)
+    # 都道府県+市区町村 を抽出
     match = re.search(r'(.+?[都道府県])(.+?[市区町村])', clean_addr)
     if match:
         return match.group(0)
@@ -97,8 +101,8 @@ def update_sheet_data(worksheet_name, df):
     conn = st.connection("gsheets", type=GSheetsConnection)
     conn.update(worksheet=worksheet_name, data=df)
 
-# --- 計算ロジック共通化 ---
 def calculate_emissions(df_participants, current_event_id):
+    """CO2削減量を計算する共通ロジック"""
     if df_participants.empty or "event_id" not in df_participants.columns:
         return None, None, pd.DataFrame()
 
@@ -117,11 +121,12 @@ def calculate_emissions(df_participants, current_event_id):
     for index, row in df_p.iterrows():
         c_type = row.get('car_type', "")
         
+        # 新旧キー対応ロジック
         if c_type in CO2_EMISSION_FACTORS:
             factor = CO2_EMISSION_FACTORS[c_type]
             capacity = MAX_CAPACITY[c_type]
         else:
-            # キー不一致時のフォールバック（デフォルト値を設定）
+            # マッチしない場合のデフォルト値（普通車相当）
             factor = 166
             capacity = 5
         
@@ -137,12 +142,22 @@ def calculate_emissions(df_participants, current_event_id):
             
     return total_solo, total_share, df_p
 
-# --- 車種情報の分割表示用関数 ---
 def split_car_info(car_str):
-    """車種文字列 '車種 | 燃費' を分割して返す"""
-    if isinstance(car_str, str) and "|" in car_str:
+    """車種文字列から燃費を抽出する（新旧データ対応版）"""
+    if not isinstance(car_str, str):
+        return str(car_str), "-"
+
+    # パターン1: 新しい形式 "車種 | 燃費"
+    if "|" in car_str:
         parts = car_str.split("|")
         return parts[0].strip(), parts[1].strip()
+
+    # パターン2: 古い形式 "車種 (燃費)"
+    match = re.search(r'(.+?)[\s\（\(]+(.+?km/L)[\)\）]', car_str)
+    if match:
+        return match.group(1).strip(), match.group(2).strip()
+
+    # パターン3: 燃費情報なし
     return car_str, "-"
 
 # --- ライブモニター用フラグメント ---
@@ -174,21 +189,21 @@ def show_live_monitor(current_event_id):
                         textfont=dict(size=40, color='white', family="Arial Black"))
     st.plotly_chart(fig, use_container_width=True)
     
-    # --- リスト表示（列分割処理） ---
+    # --- リスト表示 ---
     st.markdown("#### 📋 最新の参加者リスト")
     
-    # 必要な列をコピー
+    # 表示用データの作成
     display_df = df_p[["name", "start_point", "people", "car_type", "distance"]].copy()
     
-    # 住所の加工（市町村まで）
+    # 住所加工
     display_df["start_point"] = display_df["start_point"].apply(get_city_level_address)
     
-    # 車種情報の分割（車種名と燃費目安に分ける）
+    # 車種・燃費分割
     split_data = display_df["car_type"].apply(split_car_info)
     display_df["car_name"] = [x[0] for x in split_data]
     display_df["car_eff"] = [x[1] for x in split_data]
     
-    # 列の並び替えとリネーム
+    # 列整理
     display_df = display_df[["name", "start_point", "people", "car_name", "car_eff", "distance"]]
     display_df.columns = ["グループ名", "出発地(市町村)", "人数", "車種", "燃費目安", "距離(km)"]
     
@@ -368,13 +383,18 @@ else:
                     o_idx = row['original_index']
                     safe_address = get_city_level_address(row['start_point'])
                     
-                    with st.expander(f"👤 {row['name']} （{safe_address} から {row['people']}名）"):
+                    # リスト表示時のみ分割して見やすく（Expanderのタイトル）
+                    c_name, c_eff = split_car_info(row['car_type'])
+                    title_str = f"👤 {row['name']} （{safe_address} | {c_name} | {row['people']}名）"
+
+                    with st.expander(title_str):
                         with st.form(f"edit_{o_idx}"):
                             c1, c2 = st.columns(2)
                             with c1:
                                 p_n = st.text_input("名", value=row['name'])
                                 p_p = st.number_input("人", 1, 10, int(row['people']))
                                 
+                                # 新旧キーのマッチング
                                 current_car = row['car_type']
                                 car_idx = 0
                                 if current_car in car_keys:
