@@ -4,11 +4,10 @@ import plotly.express as px
 import math
 import uuid
 import requests
+import re # 正規表現を使うために追加
 from streamlit_gsheets import GSheetsConnection
 
 # --- 設定・定数 ---
-# 根拠: 環境省等の排出係数(ガソリン2.32kg-CO2/L, 軽油2.58kg-CO2/L)を
-# 一般的な実燃費(e燃費等の平均値を参考に設定)で割って算出
 CO2_EMISSION_FACTORS = {
     "ガソリン車 (普通 / 14km/L)": 166,
     "ガソリン車 (大型・ミニバン / 9km/L)": 258,
@@ -25,12 +24,33 @@ MAX_CAPACITY = {
     "ディーゼル車 (13km/L)": 5,
     "ハイブリッド車 (22km/L)": 5,
     "電気自動車 (EV / 走行時ゼロ)": 5,
+    "電気自動車 (EV / 走行時ゼロ)": 5,
 }
 
 # ページ設定
 st.set_page_config(page_title="イベント相乗りCO2削減シミュレーター", layout="wide")
 
 # --- 関数群 ---
+
+def get_city_level_address(address):
+    """
+    プライバシー保護のため、住所から市町村レベルまでを抽出して返す関数
+    例: "北海道千歳市東雲町2丁目" -> "北海道千歳市"
+    """
+    if not isinstance(address, str):
+        return str(address)
+    
+    # 「日本、〒000-0000」のようなAPI特有のプレフィックスがあれば除去
+    clean_addr = re.sub(r'日本、\s*〒\d{3}-\d{4}\s*', '', address)
+    
+    # 都道府県 + 市区町村 までを抽出する正規表現
+    # 「◯◯県◯◯市」「東京都◯◯区」「◯◯郡◯◯町」などに対応
+    match = re.search(r'(.+?[都道府県])(.+?[市区町村])', clean_addr)
+    if match:
+        return match.group(0)
+    
+    # マッチしない場合はそのまま（または適当に短縮）
+    return clean_addr
 
 def get_place_suggestions(query, api_key):
     if not query:
@@ -89,12 +109,10 @@ def update_sheet_data(worksheet_name, df):
 
 # --- 計算ロジック共通化 ---
 def calculate_emissions(df_participants, current_event_id):
-    """データフレームからCO2削減量を計算して返すヘルパー関数"""
     if df_participants.empty or "event_id" not in df_participants.columns:
         return None, None, pd.DataFrame()
 
     df_participants["event_id"] = df_participants["event_id"].astype(str)
-    # 元のインデックスを保持
     if 'original_index' not in df_participants.columns:
         df_participants['original_index'] = df_participants.index
         
@@ -131,9 +149,8 @@ def calculate_emissions(df_participants, current_event_id):
 @st.fragment(run_every=10)
 def show_live_monitor(current_event_id):
     st.markdown("### 📡 リアルタイム集計モニター (10秒自動更新)")
-    st.caption("※この画面は自動で最新情報に更新されます。入力操作は「登録モード」で行ってください。")
+    st.caption("※この画面は自動で最新情報に更新されます。")
     
-    # 常に最新データをロード
     all_p = load_sheet("participants")
     total_solo, total_share, df_p = calculate_emissions(all_p, current_event_id)
     
@@ -141,13 +158,11 @@ def show_live_monitor(current_event_id):
         st.info("現在、参加者は登録されていません。待機中...")
         return
 
-    # メトリクス表示
     col1, col2 = st.columns(2)
     reduction_kg = (total_solo - total_share) / 1000
     col1.metric("みんなの総CO2削減量", f"{reduction_kg:.2f} kg-CO2")
     col1.success(f"🌲 杉の木 約 {reduction_kg / 14:.1f} 本分の年間吸収量！")
     
-    # グラフ表示
     chart_data = pd.DataFrame({
         "シナリオ": ["全員ソロ移動", "相乗り移動"],
         "CO2排出量 (kg)": [total_solo/1000, total_share/1000]
@@ -159,12 +174,16 @@ def show_live_monitor(current_event_id):
                         textfont=dict(size=40, color='white', family="Arial Black"))
     st.plotly_chart(fig, use_container_width=True)
     
-    # リスト表示（閲覧専用・シンプル版）
+    # --- プライバシー保護対応済みのリスト表示 ---
     st.markdown("#### 📋 最新の参加者リスト")
-    # 見やすいように必要な列だけ抽出して表示
+    
+    # 表示用にデータをコピーして加工
     display_df = df_p[["name", "start_point", "people", "car_type", "distance"]].copy()
-    display_df.columns = ["グループ名", "出発地", "人数", "車種", "距離(km)"]
-    # 最新順
+    
+    # start_point列を市町村のみに変換
+    display_df["start_point"] = display_df["start_point"].apply(get_city_level_address)
+    
+    display_df.columns = ["グループ名", "出発地(市町村)", "人数", "車種", "距離(km)"]
     st.dataframe(display_df.iloc[::-1], use_container_width=True, hide_index=True)
 
 
@@ -180,7 +199,7 @@ except KeyError:
     st.stop()
 
 # ==========================================
-# モードA: イベントIDがない場合（主催者用画面）
+# モードA: 主催者用画面
 # ==========================================
 if not current_event_id:
     st.title("📅 イベント作成・管理パネル")
@@ -243,7 +262,7 @@ if not current_event_id:
             st.info("イベントなし")
 
 # ==========================================
-# モードB: イベントIDがある場合（参加者・集計画面）
+# モードB: 参加者・集計画面
 # ==========================================
 else:
     events_df = load_sheet("events")
@@ -262,7 +281,6 @@ else:
         loc_addr = event_data.get('location_address', loc_name)
         st.markdown(f"**開催日:** {event_data['event_date']}　|　**会場:** {loc_name}")
 
-        # 出典
         with st.expander("📏 CO2排出量の計算式・根拠データ（出典）について"):
             st.markdown("""
             本アプリでは、**環境省「算定・報告・公表制度」** の排出係数を基に、一般的な実燃費を想定して算出しています。
@@ -272,24 +290,15 @@ else:
             st.table(pd.DataFrame(data_items))
             st.caption("出典: [環境省 温室効果ガス排出量 算定・報告・公表制度](https://ghg-santeikohyo.env.go.jp/calc)")
 
-        # --- モード切替サイドバー ---
         st.sidebar.title("メニュー")
         app_mode = st.sidebar.radio("モード選択", ["📝 参加登録・編集", "📺 ライブモニター"], index=0)
 
-        # ----------------------------------------------------
-        # パターン1: ライブモニター (自動更新あり・閲覧専用)
-        # ----------------------------------------------------
         if app_mode == "📺 ライブモニター":
-            # ここだけ自動更新がかかる
             show_live_monitor(str(current_event_id))
 
-        # ----------------------------------------------------
-        # パターン2: 参加登録・編集 (自動更新なし・入力安全)
-        # ----------------------------------------------------
         else:
             st.markdown("### 📝 参加登録・編集モード")
             
-            # 1. 登録フォーム
             st.sidebar.markdown("---")
             st.sidebar.header("新規登録")
             st.sidebar.markdown("##### 1. 出発地を検索")
@@ -327,12 +336,10 @@ else:
                     else:
                         st.error("出発地を入力してください")
 
-            # 2. 集計・リスト表示（自動更新なし）
             all_p = load_sheet("participants")
             total_solo, total_share, df_p = calculate_emissions(all_p, current_event_id)
             
             if not df_p.empty:
-                # グラフ
                 st.markdown("---")
                 col1, col2 = st.columns(2)
                 red_kg = (total_solo - total_share) / 1000
@@ -345,12 +352,17 @@ else:
                                   textfont=dict(size=30, color='white', family="Arial Black"))
                 st.plotly_chart(fig, use_container_width=True)
 
-                # 編集リスト
                 st.markdown("#### 🛠 登録内容の修正・削除")
+                st.caption("※リスト上の出発地はプライバシー保護のため市町村のみ表示されます。")
+                
                 car_keys = list(CO2_EMISSION_FACTORS.keys())
                 for idx, row in df_p[::-1].iterrows():
                     o_idx = row['original_index']
-                    with st.expander(f"👤 {row['name']} ({row['start_point']})"):
+                    
+                    # リストの見出し（Expanderタイトル）は「市町村レベル」に変換して表示
+                    safe_address = get_city_level_address(row['start_point'])
+                    
+                    with st.expander(f"👤 {row['name']} （{safe_address} から {row['people']}名）"):
                         with st.form(f"edit_{o_idx}"):
                             c1, c2 = st.columns(2)
                             with c1:
@@ -360,7 +372,8 @@ else:
                                 except: c_idx = 0
                                 p_c = st.selectbox("車", car_keys, index=c_idx)
                             with c2:
-                                p_s = st.text_input("発", value=row['start_point'])
+                                # 編集フォームの中身は、本人が修正しやすいように元の詳細住所を表示
+                                p_s = st.text_input("出発地", value=row['start_point'])
                                 p_d = st.number_input("km", value=float(row['distance']))
                             
                             b1, b2 = st.columns(2)
