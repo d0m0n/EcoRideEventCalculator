@@ -1,4 +1,4 @@
 streamlit
 pandas
 plotly
-streamlit-google-sheets
+st-gsheets-connection
