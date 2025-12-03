@@ -29,68 +29,68 @@ MAX_CAPACITY = {
 # ページ設定
 st.set_page_config(page_title="イベント相乗りCO2削減シミュレーター", layout="wide")
 
-# --- カスタムCSSの注入（グレー系・シャドウなし） ---
+# --- カスタムCSSの注入（丸ゴシック & ダークモード対応） ---
 st.markdown("""
 <style>
-    /* 全体のフォントとベースカラー */
+    /* Google Fontsから丸ゴシック（M PLUS Rounded 1c）を読み込み */
+    @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;800&display=swap');
+
+    /* 全体のフォント設定 */
     html, body, [class*="css"] {
-        font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
-        color: #333333; /* 基本の文字色（濃いグレー） */
+        font-family: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif !important;
     }
     
-    /* ヘッダー (h1, h2, h3) の設定 */
+    /* ヘッダー (h1, h2, h3) */
     h1, h2, h3 {
-        color: #424242 !important; /* より濃いグレー */
         font-weight: 800;
-        /* text-shadow は削除しました */
+        /* 色指定を削除し、モード（ライト/ダーク）に合わせて自動変化させます */
     }
     
-    /* ボタンのカスタマイズ（グレー系） */
+    /* ボタンのカスタマイズ（濃いグレー基調） */
+    /* ダークモードでも目立つように、ボーダーとホバー効果を調整 */
     .stButton > button {
-        background-color: #616161 !important; /* 濃いグレー */
+        background-color: #546E7A !important; /* ブルーグレー（落ち着いた色） */
         color: white !important;
         border: none;
-        border-radius: 8px; /* 角丸を少し控えめに */
+        border-radius: 12px; /* 丸ゴシックに合わせて少し丸く */
         font-weight: bold;
         padding: 0.5rem 2rem;
         transition: all 0.2s ease;
+        font-family: 'M PLUS Rounded 1c', sans-serif !important;
     }
     .stButton > button:hover {
-        background-color: #757575 !important; /* ホバー時は少し明るく */
-        transform: scale(1.01);
-        /* box-shadow は削除しました */
+        background-color: #78909C !important;
+        transform: scale(1.02);
     }
 
-    /* 削除ボタンなどは赤系のまま維持（アクセント） */
+    /* 削除ボタンなどは赤系 */
     button[kind="primary"] {
-         background-color: #D32F2F !important; /* 落ち着いた赤 */
+         background-color: #EF5350 !important;
     }
     button[kind="primary"]:hover {
-         background-color: #E53935 !important;
+         background-color: #E57373 !important;
     }
 
-    /* メトリクス（数字）の背景をシンプルなカード化 */
+    /* メトリクス（数字）の背景カード化 */
     div[data-testid="stMetric"] {
-        background-color: #ffffff;
-        border: 1px solid #e0e0e0;
+        /* 背景色を「セカンダリ背景色（薄いグレー）」に設定することでモード追従 */
+        background-color: var(--secondary-background-color);
+        border: 1px solid var(--text-color-20); /* 薄い枠線 */
         padding: 15px;
-        border-radius: 8px;
-        /* シャドウを削除しフラットに */
+        border-radius: 12px;
         text-align: center;
     }
     
     /* Expanderのヘッダー */
     .streamlit-expanderHeader {
-        background-color: #f5f5f5; /* 非常に薄いグレー */
-        color: #424242;
+        background-color: var(--secondary-background-color);
+        border-radius: 8px;
         font-weight: bold;
-        border-radius: 5px;
     }
     
-    /* サイドバーの背景色 */
-    section[data-testid="stSidebar"] {
-        background-color: #fafafa; /* ほぼ白に近いグレー */
-        border-right: 1px solid #eeeeee;
+    /* データフレームのヘッダー文字サイズ調整 */
+    th {
+        font-size: 1.1rem !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -237,23 +237,24 @@ def show_live_monitor(current_event_id):
         "シナリオ": ["全員ソロ移動", "相乗り移動"],
         "CO2排出量 (kg)": [total_solo/1000, total_share/1000]
     })
-    # グラフの色もグレー基調に変更（アクセントで元の色を残す）
+    
+    # グラフ設定：色固定を解除し、Streamlitのテーマに従わせる
     fig = px.bar(chart_data, x="シナリオ", y="CO2排出量 (kg)", 
                     color="シナリオ", 
-                    # color_discrete_sequence=["#9E9E9E", "#616161"], # 完全モノトーンの場合
-                    color_discrete_sequence=["#FF6B6B", "#4ECDC4"], # グラフだけ元の色を残す場合
+                    color_discrete_sequence=["#90A4AE", "#546E7A"], # 落ち着いたブルーグレー系
                     text="CO2排出量 (kg)")
     
+    # グラフのフォント色指定を削除（自動追従させるため）
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         showlegend=False,
-        yaxis=dict(showgrid=True, gridcolor='#eeeeee'),
-        font=dict(family="Arial", size=14, color="#424242")
+        yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'), # グリッドを半透明に
+        font=dict(family="M PLUS Rounded 1c", size=14) # フォントのみ指定、色は自動
     )
     
     fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside',
-                        textfont=dict(size=40, color='white', family="Arial Black"))
+                        textfont=dict(size=40, color='white', family="M PLUS Rounded 1c"))
     st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("#### 📋 最新の参加者リスト")
@@ -431,19 +432,21 @@ else:
                 col3.info(f"現在の実稼働台数: {actual_cars} 台")
                 
                 c_data = pd.DataFrame({"シナリオ": ["全員ソロ", "相乗り"], "CO2": [total_solo/1000, total_share/1000]})
+                
+                # グラフ色も落ち着いたブルーグレー系に変更
                 fig = px.bar(c_data, x="シナリオ", y="CO2", color="シナリオ", 
-                             color_discrete_sequence=["#FF6B6B", "#4ECDC4"], text="CO2")
+                             color_discrete_sequence=["#90A4AE", "#546E7A"], text="CO2")
                 
                 fig.update_layout(
                     plot_bgcolor="rgba(0,0,0,0)",
                     paper_bgcolor="rgba(0,0,0,0)",
                     showlegend=False,
-                    yaxis=dict(showgrid=True, gridcolor='#eeeeee'),
-                    font=dict(family="Arial", size=14, color="#424242")
+                    yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'),
+                    font=dict(family="M PLUS Rounded 1c", size=14)
                 )
 
                 fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside', 
-                                  textfont=dict(size=30, color='white', family="Arial Black"))
+                                  textfont=dict(size=30, color='white', family="M PLUS Rounded 1c"))
                 st.plotly_chart(fig, use_container_width=True)
 
                 st.markdown("#### 🛠 登録内容の修正・削除")
