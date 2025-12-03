@@ -29,95 +29,87 @@ MAX_CAPACITY = {
 # ページ設定
 st.set_page_config(page_title="イベント相乗りCO2削減シミュレーター", layout="wide")
 
-# --- カスタムCSSの注入（Noto Sans JP 版） ---
+# --- カスタムCSSの注入（アイコン修正版） ---
 st.markdown("""
 <head>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <style>
-    /* 1. 全要素にNoto Sans JPを適用 */
-    html, body, [class*="css"], .stApp, font, div, span, p, h1, h2, h3, button, input, select, textarea {
+    /* 1. 基本フォント設定 (Noto Sans JP) */
+    html, body, [class*="css"], .stApp {
         font-family: 'Noto Sans JP', sans-serif !important;
         color: #333333;
         line-height: 1.6 !important;
-        letter-spacing: 0.03em !important; /* 丸ゴシックより少し詰めてスッキリさせる */
+        letter-spacing: 0.03em !important;
     }
     
-    /* 2. ヘッダー設定（濃いグレー） */
+    /* 2. アイコンの文字化け（keyboard_arrow_right）を防ぐ設定 */
+    /* Material Icons クラスを持つ要素、または特定のSVGラッパー内のテキストには専用フォントを適用 */
+    .material-icons, 
+    [data-testid="stExpander"] svg, 
+    .st-emotion-cache-164 nlkn, /* Streamlitの内部クラス名対策 */
+    i {
+        font-family: 'Material Icons' !important;
+        font-style: normal;
+        font-weight: normal;
+        font-variant: normal;
+        text-transform: none;
+        line-height: 1;
+        letter-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        direction: ltr;
+    }
+
+    /* ヘッダー */
     h1, h2, h3 {
-        font-weight: 700 !important; /* 800から700へ（Noto Sansの太字） */
+        font-family: 'Noto Sans JP', sans-serif !important;
+        font-weight: 700 !important;
         color: #424242 !important;
-        line-height: 1.4 !important;
         padding-bottom: 0.5rem;
     }
     
-    /* 3. Expander（ドロップダウン） */
+    /* Expander（ドロップダウン） */
     .streamlit-expanderHeader {
         background-color: #f5f5f5;
-        border-radius: 6px; /* 角丸を少しシャープに */
+        border-radius: 6px;
         font-weight: 700;
         color: #424242;
         font-size: 1rem !important;
-        display: flex;
-        align-items: center;
-        padding: 0.5rem 1rem !important;
-    }
-    .streamlit-expanderHeader svg {
-        margin-right: 12px !important;
-        flex-shrink: 0;
-    }
-    .streamlit-expanderHeader p {
-        margin: 0 !important;
         font-family: 'Noto Sans JP', sans-serif !important;
     }
-
-    /* 4. ボタンのカスタマイズ（シンプルで機能的なデザイン） */
+    
+    /* ボタン */
     .stButton > button {
         font-family: 'Noto Sans JP', sans-serif !important;
         background-color: #546E7A !important;
         color: white !important;
         border: none;
-        border-radius: 6px !important; /* 丸みを抑えてプロっぽく */
+        border-radius: 6px !important;
         font-weight: 700 !important;
         padding: 0.6rem 2rem;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important; /* 僅かな影で立体感 */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
     }
     .stButton > button:hover {
         background-color: #78909C !important;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.15) !important;
     }
+    button[kind="primary"] { background-color: #EF5350 !important; }
+    button[kind="primary"]:hover { background-color: #E57373 !important; }
 
-    /* 削除ボタン */
-    button[kind="primary"] {
-         background-color: #EF5350 !important;
-    }
-    button[kind="primary"]:hover {
-         background-color: #E57373 !important;
-    }
-
-    /* 5. メトリクス（数字） */
+    /* メトリクス */
     div[data-testid="stMetric"] {
-        background-color: #ffffff; /* 完全な白ですっきり */
+        background-color: #ffffff;
         border: 1px solid #e0e0e0;
         padding: 15px;
         border-radius: 8px;
         text-align: center;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* 微細な影 */
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    div[data-testid="stMetricLabel"] {
-        font-family: 'Noto Sans JP', sans-serif !important;
-        font-size: 0.9rem !important;
-        color: #757575 !important;
-    }
-    div[data-testid="stMetricValue"] {
-        font-family: 'Noto Sans JP', sans-serif !important;
-        font-weight: 700 !important;
-        color: #212121 !important;
-    }
+    div[data-testid="stMetricLabel"] { font-family: 'Noto Sans JP', sans-serif !important; }
+    div[data-testid="stMetricValue"] { font-family: 'Noto Sans JP', sans-serif !important; font-weight: 700 !important; }
     
     /* サイドバー */
     section[data-testid="stSidebar"] {
@@ -128,11 +120,6 @@ st.markdown("""
     /* データフレーム */
     div[data-testid="stDataFrame"] {
         font-family: 'Noto Sans JP', sans-serif !important;
-    }
-    div[data-testid="stDataFrame"] th {
-        background-color: #f5f5f5 !important;
-        color: #424242 !important;
-        font-weight: 700 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -149,38 +136,30 @@ def get_city_level_address(address):
     return clean_addr
 
 def get_place_suggestions(query, api_key):
-    if not query:
-        return []
+    if not query: return []
     url = "https://maps.googleapis.com/maps/api/place/autocomplete/json"
-    params = {
-        "input": query, "key": api_key, "language": "ja", "components": "country:jp"
-    }
+    params = {"input": query, "key": api_key, "language": "ja", "components": "country:jp"}
     try:
         response = requests.get(url, params=params)
         data = response.json()
         if data["status"] == "OK":
-            suggestions = []
-            for prediction in data["predictions"]:
-                suggestions.append({"label": prediction["description"], "value": prediction["description"]})
-            return suggestions
+            return [{"label": p["description"], "value": p["description"]} for p in data["predictions"]]
     except Exception as e:
         st.error(f"場所検索エラー: {e}")
     return []
 
 def get_distance(origin, destination, api_key):
     url = "https://maps.googleapis.com/maps/api/distancematrix/json"
-    params = {
-        "origins": origin, "destinations": destination, "key": api_key, "language": "ja"
-    }
+    params = {"origins": origin, "destinations": destination, "key": api_key, "language": "ja"}
     try:
         response = requests.get(url, params=params)
         data = response.json()
         if data["status"] == "OK":
             rows = data.get("rows", [])
             if rows and rows[0].get("elements"):
-                element = rows[0]["elements"][0]
-                if element.get("status") == "OK":
-                    return element["distance"]["value"] / 1000.0
+                elm = rows[0]["elements"][0]
+                if elm.get("status") == "OK":
+                    return elm["distance"]["value"] / 1000.0
     except Exception as e:
         st.error(f"距離計算エラー: {e}")
     return None
@@ -212,14 +191,9 @@ def calculate_stats(df_participants, current_event_id):
         df_participants['original_index'] = df_participants.index
         
     df_p = df_participants[df_participants["event_id"] == str(current_event_id)].copy()
-    
-    if df_p.empty:
-        return 0, 0, 0, 0, df_p
+    if df_p.empty: return 0, 0, 0, 0, df_p
 
-    total_solo = 0
-    total_share = 0
-    total_actual_cars = 0
-    total_people = 0
+    total_solo, total_share, total_actual_cars, total_people = 0, 0, 0, 0
     
     for index, row in df_p.iterrows():
         c_type = row.get('car_type', "")
@@ -233,10 +207,8 @@ def calculate_stats(df_participants, current_event_id):
             dist = float(row['distance'])
             ppl = int(row['people'])
             cars = math.ceil(ppl / capacity)
-            solo = ppl * dist * factor * 2
-            share = cars * dist * factor * 2
-            total_solo += solo
-            total_share += share
+            total_solo += ppl * dist * factor * 2
+            total_share += cars * dist * factor * 2
             total_actual_cars += cars
             total_people += ppl
         except:
@@ -275,27 +247,12 @@ def show_live_monitor(current_event_id):
     col2.metric("平均相乗り率 (人/台)", f"{occupancy_rate:.2f} 人")
     col3.success(f"🌲 杉の木 約 {reduction_kg / 14:.1f} 本分の年間吸収量！")
     
-    chart_data = pd.DataFrame({
-        "シナリオ": ["全員ソロ移動", "相乗り移動"],
-        "CO2排出量 (kg)": [total_solo/1000, total_share/1000]
-    })
-    
-    # グラフの色指定（グレー系 & 落ち着いたアクセント）
-    fig = px.bar(chart_data, x="シナリオ", y="CO2排出量 (kg)", 
-                    color="シナリオ", 
-                    color_discrete_sequence=["#B0BEC5", "#546E7A"], 
-                    text="CO2排出量 (kg)")
-    
-    fig.update_layout(
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        showlegend=False,
-        yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'),
-        font=dict(family="Noto Sans JP", size=14)
-    )
-    
-    fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside',
-                        textfont=dict(size=40, color='white', family="Noto Sans JP"))
+    c_data = pd.DataFrame({"シナリオ": ["全員ソロ移動", "相乗り移動"], "CO2排出量 (kg)": [total_solo/1000, total_share/1000]})
+    fig = px.bar(c_data, x="シナリオ", y="CO2排出量 (kg)", color="シナリオ", 
+                 color_discrete_sequence=["#B0BEC5", "#546E7A"], text="CO2排出量 (kg)")
+    fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
+                      yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'), font=dict(family="Noto Sans JP", size=14))
+    fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside', textfont=dict(size=40, color='white', family="Noto Sans JP"))
     st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("#### 📋 最新の参加者リスト")
@@ -466,26 +423,15 @@ else:
                 col1, col2, col3 = st.columns(3)
                 red_kg = (total_solo - total_share) / 1000
                 col1.metric("削減量", f"{red_kg:.2f} kg")
-                
                 occupancy_rate = total_people / actual_cars if actual_cars > 0 else 0
                 col2.metric("相乗り率", f"{occupancy_rate:.2f} 人/台")
-                
                 col3.info(f"現在の実稼働台数: {actual_cars} 台")
                 
                 c_data = pd.DataFrame({"シナリオ": ["全員ソロ", "相乗り"], "CO2": [total_solo/1000, total_share/1000]})
-                fig = px.bar(c_data, x="シナリオ", y="CO2", color="シナリオ", 
-                             color_discrete_sequence=["#B0BEC5", "#546E7A"], text="CO2")
-                
-                fig.update_layout(
-                    plot_bgcolor="rgba(0,0,0,0)",
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    showlegend=False,
-                    yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'),
-                    font=dict(family="Noto Sans JP", size=14)
-                )
-
-                fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside', 
-                                  textfont=dict(size=30, color='white', family="Noto Sans JP"))
+                fig = px.bar(c_data, x="シナリオ", y="CO2", color="シナリオ", color_discrete_sequence=["#B0BEC5", "#546E7A"], text="CO2")
+                fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
+                                  yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'), font=dict(family="Noto Sans JP", size=14))
+                fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside', textfont=dict(size=30, color='white', family="Noto Sans JP"))
                 st.plotly_chart(fig, use_container_width=True)
 
                 st.markdown("#### 🛠 登録内容の修正・削除")
