@@ -7,14 +7,24 @@ import requests
 from streamlit_gsheets import GSheetsConnection
 
 # --- 設定・定数 ---
-# ※出典: 国土交通省「自動車燃費一覧」、環境省「排出係数一覧」などを参考に設定した概算値
+# 根拠: 環境省等の排出係数(ガソリン2.32kg-CO2/L, 軽油2.58kg-CO2/L)を
+# 一般的な実燃費(e燃費等の平均値を参考に設定)で割って算出
 CO2_EMISSION_FACTORS = {
-    "ガソリン車 (普通)": 130, "ガソリン車 (大型・ミニバン)": 180,
-    "軽自動車": 100, "ディーゼル車": 110, "ハイブリッド車": 70, "電気自動車 (EV)": 0
+    "ガソリン車 (普通 / 14km/L)": 166,
+    "ガソリン車 (大型・ミニバン / 9km/L)": 258,
+    "軽自動車 (16km/L)": 145,
+    "ディーゼル車 (13km/L)": 198,
+    "ハイブリッド車 (22km/L)": 105,
+    "電気自動車 (EV / 走行時ゼロ)": 0,
 }
+
 MAX_CAPACITY = {
-    "ガソリン車 (普通)": 5, "ガソリン車 (大型・ミニバン)": 8,
-    "軽自動車": 4, "ディーゼル車": 5, "ハイブリッド車": 5, "電気自動車 (EV)": 5
+    "ガソリン車 (普通 / 14km/L)": 5,
+    "ガソリン車 (大型・ミニバン / 9km/L)": 8,
+    "軽自動車 (16km/L)": 4,
+    "ディーゼル車 (13km/L)": 5,
+    "ハイブリッド車 (22km/L)": 5,
+    "電気自動車 (EV / 走行時ゼロ)": 5,
 }
 
 # ページ設定
@@ -42,7 +52,7 @@ def get_place_suggestions(query, api_key):
             for prediction in data["predictions"]:
                 suggestions.append({
                     "label": prediction["description"],
-                    "value": prediction["description"]  # 実際に使う住所
+                    "value": prediction["description"]
                 })
             return suggestions
     except Exception as e:
@@ -80,7 +90,7 @@ def load_sheet(worksheet_name):
     except:
         return pd.DataFrame()
 
-# シート書き込み（追記）
+# シート書き込み
 def append_to_sheet(worksheet_name, new_data_dict):
     conn = st.connection("gsheets", type=GSheetsConnection)
     df = load_sheet(worksheet_name)
@@ -88,18 +98,16 @@ def append_to_sheet(worksheet_name, new_data_dict):
     updated_df = pd.concat([df, new_df], ignore_index=True)
     conn.update(worksheet=worksheet_name, data=updated_df)
 
-# シート更新（上書き・削除用）
+# シート更新
 def update_sheet_data(worksheet_name, df):
     conn = st.connection("gsheets", type=GSheetsConnection)
     conn.update(worksheet=worksheet_name, data=df)
 
 # --- メイン処理 ---
 
-# URLパラメータからevent_idを取得
 query_params = st.query_params
 current_event_id = query_params.get("event_id", None)
 
-# SecretsからAPIキー取得
 try:
     MAPS_API_KEY = st.secrets["general"]["google_maps_api_key"]
 except KeyError:
@@ -114,7 +122,6 @@ if not current_event_id:
     
     tab1, tab2 = st.tabs(["✨ 新規イベント作成", "🛠 作成済みイベントの管理"])
 
-    # --- 新規作成タブ ---
     with tab1:
         st.info("新しいイベント情報を入力してください。")
         with st.form("create_event"):
@@ -145,7 +152,6 @@ if not current_event_id:
                     st.success(f"イベント「{e_name}」を作成しました！")
                     st.rerun()
 
-    # --- 管理タブ ---
     with tab2:
         st.subheader("作成済みイベント一覧")
         events_df = load_sheet("events")
@@ -212,37 +218,42 @@ else:
     else:
         event_data = target_event.iloc[0]
         
-        # タイトル部分
         st.title(f"🚗 {event_data['event_name']}")
         loc_name = event_data['location_name'] if 'location_name' in event_data else event_data['location']
         loc_addr = event_data['location_address'] if 'location_address' in event_data else loc_name
         
         st.markdown(f"**開催日:** {event_data['event_date']}　|　**会場:** {loc_name}")
 
-        # --- 👇 ここに出典情報を追加しました ---
+        # --- 出典情報の詳細表示 ---
         with st.expander("📏 CO2排出量の計算式・根拠データ（出典）について"):
             st.markdown("""
-            本アプリにおけるCO2排出量は、以下の計算式および公的機関の公表データを参考に算出した概算値です。
+            本アプリでは、**環境省「算定・報告・公表制度」** の排出係数を基に、一般的な実燃費を想定して1kmあたりのCO2排出量を算出しています。
             
-            ##### 1. 計算式
+            ##### 1. 計算の前提（使用係数）
+            環境省が定めている、燃料1リットルあたりのCO2排出量は以下の通りです。
+            * **ガソリン:** 2.32 kg-CO2 / L
+            * **軽油:** 2.58 kg-CO2 / L
+            
+            ##### 2. 本アプリでの算出ロジック
             $$
-            \\text{CO}_2 \\text{排出量 (g)} = \\text{片道距離 (km)} \\times 2 (\\text{往復}) \\times \\text{車種別排出係数 (g/km)}
+            \\text{1km排出量} = \\frac{\\text{燃料の排出係数 (g/L)}}{\\text{想定燃費 (km/L)}}
             $$
             
-            ##### 2. 車種別排出係数の設定値
-            **国土交通省「自動車燃費一覧」** および **環境省「温室効果ガス排出量算定・報告・公表制度」** の数値を参考に、独自に設定しています。
+            実際の道路状況（渋滞・エアコン使用・多人数乗車）を考慮し、カタログ値ではなく**一般的な実燃費**を想定して設定しています。
             """)
             
-            # データフレームで係数表を表示
-            factor_df = pd.DataFrame(list(CO2_EMISSION_FACTORS.items()), columns=["車種区分", "排出係数 (g-CO2/km)"])
+            # 係数表の作成
+            data_items = []
+            for k, v in CO2_EMISSION_FACTORS.items():
+                data_items.append({"車種設定": k, "設定排出係数 (g-CO2/km)": v})
+            
+            factor_df = pd.DataFrame(data_items)
             st.table(factor_df)
             
             st.caption("""
-            * **電気自動車 (EV):** 走行時の排出量はゼロとして計算しています（発電時の電源構成等は考慮していません）。
-            * **実際の排出量:** 道路状況（渋滞等）やエアコンの使用有無、乗車人数により変動します。あくまで目安としてご利用ください。
-            * **参考リンク:** [国土交通省：運輸部門における二酸化炭素排出量](https://www.mlit.go.jp/sogoseisaku/environment/sosei_environment_tk_000007.html)
+            * **出典リンク:** [環境省 温室効果ガス排出量 算定・報告・公表制度](https://ghg-santeikohyo.env.go.jp/calc)
+            * **電気自動車 (EV):** 「走行時の排出量」はゼロとして計算しています（発電由来の排出は考慮していません）。
             """)
-        # --- 👆 ここまで ---
         
         # --- サイドバー：参加登録 ---
         st.sidebar.header("参加登録フォーム")
@@ -268,7 +279,10 @@ else:
             final_start_point = st.text_input("出発地 (確定)", value=initial_val)
             name = st.text_input("グループ名 / お名前")
             num_people = st.number_input("人数", 1, 10, 2)
-            car_type = st.selectbox("使用する車両", list(CO2_EMISSION_FACTORS.keys()))
+            
+            # 車種選択ロジック（万が一キーが変わった場合の対策でindex取得を修正）
+            car_keys = list(CO2_EMISSION_FACTORS.keys())
+            car_type = st.selectbox("使用する車両", car_keys)
             
             st.caption(f"目的地: {loc_name}")
             join_submitted = st.form_submit_button("計算して登録")
@@ -306,8 +320,15 @@ else:
                 total_solo_co2 = 0
                 total_share_co2 = 0
                 for index, row in df_p.iterrows():
-                    factor = CO2_EMISSION_FACTORS.get(row['car_type'], 130)
-                    capacity = MAX_CAPACITY.get(row['car_type'], 5)
+                    # 以前のデータでキーが合わない場合のフォールバック
+                    c_type = row['car_type']
+                    if c_type not in CO2_EMISSION_FACTORS:
+                        # 部分一致などを試みるか、デフォルト値を使う
+                        factor = 166 # 普通車の値をデフォルトに
+                        capacity = 5
+                    else:
+                        factor = CO2_EMISSION_FACTORS[c_type]
+                        capacity = MAX_CAPACITY[c_type]
                     
                     try:
                         dist = float(row['distance'])
@@ -352,6 +373,7 @@ else:
                 st.markdown("#### 📝 参加者リスト・編集")
                 st.caption("各カードを開くと、登録内容の修正や削除ができます。")
                 
+                car_keys = list(CO2_EMISSION_FACTORS.keys())
                 for idx, row in df_p[::-1].iterrows():
                     original_idx = row['original_index']
                     
@@ -361,7 +383,14 @@ else:
                             with c1:
                                 p_name = st.text_input("名前", value=row['name'])
                                 p_people = st.number_input("人数", min_value=1, value=int(row['people']))
-                                p_car = st.selectbox("車種", list(CO2_EMISSION_FACTORS.keys()), index=list(CO2_EMISSION_FACTORS.keys()).index(row['car_type']) if row['car_type'] in CO2_EMISSION_FACTORS else 0)
+                                
+                                # 車種選択の初期値合わせ（データ不整合対策）
+                                current_car = row['car_type']
+                                car_index = 0
+                                if current_car in car_keys:
+                                    car_index = car_keys.index(current_car)
+                                
+                                p_car = st.selectbox("車種", car_keys, index=car_index)
                             with c2:
                                 p_start = st.text_input("出発地", value=row['start_point'])
                                 p_dist = st.number_input("距離 (km)", value=float(row['distance']))
