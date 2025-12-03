@@ -38,9 +38,7 @@ def get_city_level_address(address):
     """プライバシー保護のため、住所から市町村レベルまでを抽出"""
     if not isinstance(address, str):
         return str(address)
-    # API由来の「日本、〒...」を除去
     clean_addr = re.sub(r'日本、\s*〒\d{3}-\d{4}\s*', '', address)
-    # 都道府県+市区町村 を抽出
     match = re.search(r'(.+?[都道府県])(.+?[市区町村])', clean_addr)
     if match:
         return match.group(0)
@@ -101,10 +99,13 @@ def update_sheet_data(worksheet_name, df):
     conn = st.connection("gsheets", type=GSheetsConnection)
     conn.update(worksheet=worksheet_name, data=df)
 
-def calculate_emissions(df_participants, current_event_id):
-    """CO2削減量を計算する共通ロジック"""
+def calculate_stats(df_participants, current_event_id):
+    """
+    CO2削減量と、車両台数・人数などの統計情報を計算して返す関数
+    戻り値: total_solo_co2, total_share_co2, actual_cars, total_people, df_p
+    """
     if df_participants.empty or "event_id" not in df_participants.columns:
-        return None, None, pd.DataFrame()
+        return None, None, 0, 0, pd.DataFrame()
 
     df_participants["event_id"] = df_participants["event_id"].astype(str)
     if 'original_index' not in df_participants.columns:
@@ -113,51 +114,54 @@ def calculate_emissions(df_participants, current_event_id):
     df_p = df_participants[df_participants["event_id"] == str(current_event_id)].copy()
     
     if df_p.empty:
-        return 0, 0, df_p
+        return 0, 0, 0, 0, df_p
 
     total_solo = 0
     total_share = 0
+    total_actual_cars = 0
+    total_people = 0
     
     for index, row in df_p.iterrows():
         c_type = row.get('car_type', "")
         
-        # 新旧キー対応ロジック
         if c_type in CO2_EMISSION_FACTORS:
             factor = CO2_EMISSION_FACTORS[c_type]
             capacity = MAX_CAPACITY[c_type]
         else:
-            # マッチしない場合のデフォルト値（普通車相当）
             factor = 166
             capacity = 5
         
         try:
             dist = float(row['distance'])
             ppl = int(row['people'])
+            
+            # 車両台数の計算（相乗り時）
+            cars = math.ceil(ppl / capacity)
+            
+            # CO2排出量
             solo = ppl * dist * factor * 2
-            share = math.ceil(ppl / capacity) * dist * factor * 2
+            share = cars * dist * factor * 2
+            
             total_solo += solo
             total_share += share
+            total_actual_cars += cars
+            total_people += ppl
+            
         except:
             continue
             
-    return total_solo, total_share, df_p
+    return total_solo, total_share, total_actual_cars, total_people, df_p
 
 def split_car_info(car_str):
-    """車種文字列から燃費を抽出する（新旧データ対応版）"""
+    """車種文字列から燃費を抽出する"""
     if not isinstance(car_str, str):
         return str(car_str), "-"
-
-    # パターン1: 新しい形式 "車種 | 燃費"
     if "|" in car_str:
         parts = car_str.split("|")
         return parts[0].strip(), parts[1].strip()
-
-    # パターン2: 古い形式 "車種 (燃費)"
     match = re.search(r'(.+?)[\s\（\(]+(.+?km/L)[\)\）]', car_str)
     if match:
         return match.group(1).strip(), match.group(2).strip()
-
-    # パターン3: 燃費情報なし
     return car_str, "-"
 
 # --- ライブモニター用フラグメント ---
@@ -167,17 +171,27 @@ def show_live_monitor(current_event_id):
     st.caption("※この画面は自動で最新情報に更新されます。")
     
     all_p = load_sheet("participants")
-    total_solo, total_share, df_p = calculate_emissions(all_p, current_event_id)
+    total_solo, total_share, actual_cars, total_people, df_p = calculate_stats(all_p, current_event_id)
     
     if df_p.empty:
         st.info("現在、参加者は登録されていません。待機中...")
         return
 
-    col1, col2 = st.columns(2)
+    # --- メトリクス表示 ---
+    col1, col2, col3 = st.columns(3)
+    
+    # CO2削減量
     reduction_kg = (total_solo - total_share) / 1000
     col1.metric("みんなの総CO2削減量", f"{reduction_kg:.2f} kg-CO2")
-    col1.success(f"🌲 杉の木 約 {reduction_kg / 14:.1f} 本分の年間吸収量！")
     
+    # 相乗り率（平均乗車人数）
+    occupancy_rate = total_people / actual_cars if actual_cars > 0 else 0
+    col2.metric("平均相乗り率 (人/台)", f"{occupancy_rate:.2f} 人")
+    
+    # 杉の木換算
+    col3.success(f"🌲 杉の木 約 {reduction_kg / 14:.1f} 本分の年間吸収量！")
+    
+    # --- グラフ表示 ---
     chart_data = pd.DataFrame({
         "シナリオ": ["全員ソロ移動", "相乗り移動"],
         "CO2排出量 (kg)": [total_solo/1000, total_share/1000]
@@ -191,22 +205,14 @@ def show_live_monitor(current_event_id):
     
     # --- リスト表示 ---
     st.markdown("#### 📋 最新の参加者リスト")
-    
-    # 表示用データの作成
     display_df = df_p[["name", "start_point", "people", "car_type", "distance"]].copy()
-    
-    # 住所加工
     display_df["start_point"] = display_df["start_point"].apply(get_city_level_address)
-    
-    # 車種・燃費分割
     split_data = display_df["car_type"].apply(split_car_info)
     display_df["car_name"] = [x[0] for x in split_data]
     display_df["car_eff"] = [x[1] for x in split_data]
     
-    # 列整理
     display_df = display_df[["name", "start_point", "people", "car_name", "car_eff", "distance"]]
     display_df.columns = ["グループ名", "出発地(市町村)", "人数", "車種", "燃費目安", "距離(km)"]
-    
     st.dataframe(display_df.iloc[::-1], use_container_width=True, hide_index=True)
 
 
@@ -360,13 +366,18 @@ else:
                         st.error("出発地を入力してください")
 
             all_p = load_sheet("participants")
-            total_solo, total_share, df_p = calculate_emissions(all_p, current_event_id)
+            total_solo, total_share, actual_cars, total_people, df_p = calculate_stats(all_p, current_event_id)
             
             if not df_p.empty:
                 st.markdown("---")
-                col1, col2 = st.columns(2)
+                col1, col2, col3 = st.columns(3)
                 red_kg = (total_solo - total_share) / 1000
                 col1.metric("削減量", f"{red_kg:.2f} kg")
+                
+                occupancy_rate = total_people / actual_cars if actual_cars > 0 else 0
+                col2.metric("相乗り率", f"{occupancy_rate:.2f} 人/台")
+                
+                col3.info(f"現在の実稼働台数: {actual_cars} 台")
                 
                 c_data = pd.DataFrame({"シナリオ": ["全員ソロ", "相乗り"], "CO2": [total_solo/1000, total_share/1000]})
                 fig = px.bar(c_data, x="シナリオ", y="CO2", color="シナリオ", 
@@ -382,8 +393,6 @@ else:
                 for idx, row in df_p[::-1].iterrows():
                     o_idx = row['original_index']
                     safe_address = get_city_level_address(row['start_point'])
-                    
-                    # リスト表示時のみ分割して見やすく（Expanderのタイトル）
                     c_name, c_eff = split_car_info(row['car_type'])
                     title_str = f"👤 {row['name']} （{safe_address} | {c_name} | {row['people']}名）"
 
@@ -393,13 +402,10 @@ else:
                             with c1:
                                 p_n = st.text_input("名", value=row['name'])
                                 p_p = st.number_input("人", 1, 10, int(row['people']))
-                                
-                                # 新旧キーのマッチング
                                 current_car = row['car_type']
                                 car_idx = 0
                                 if current_car in car_keys:
                                     car_idx = car_keys.index(current_car)
-                                
                                 p_c = st.selectbox("車", car_keys, index=car_idx)
                             with c2:
                                 p_s = st.text_input("出発地", value=row['start_point'])
