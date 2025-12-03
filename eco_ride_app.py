@@ -29,8 +29,7 @@ MAX_CAPACITY = {
 # ページ設定
 st.set_page_config(page_title="イベント相乗りCO2削減シミュレーター", layout="wide")
 
-# --- カスタムCSSとフォントの注入（強力版） ---
-# <link>タグを使ってGoogle Fontsを確実に読み込ませます
+# --- カスタムCSSの注入（文字重なり修正版） ---
 st.markdown("""
 <head>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,35 +37,64 @@ st.markdown("""
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;800&display=swap" rel="stylesheet">
 </head>
 <style>
-    /* 全要素に対して丸ゴシックを強制適用 */
-    html, body, [class*="css"], font, div, span, p, h1, h2, h3, button, input, select, textarea {
+    /* 全体のフォント設定：行間と文字間隔を広げて重なりを防ぐ */
+    html, body, [class*="css"], .stApp {
         font-family: 'M PLUS Rounded 1c', sans-serif !important;
         color: #333333;
+        line-height: 1.6 !important; /* 行間を広げる */
+        letter-spacing: 0.05em !important; /* 文字間隔を少し広げる */
     }
     
-    /* ヘッダー設定（濃いグレー） */
+    /* ヘッダー設定 */
     h1, h2, h3 {
         font-weight: 800 !important;
         color: #424242 !important;
+        line-height: 1.4 !important;
+        padding-bottom: 0.5rem;
     }
     
-    /* ボタンのカスタマイズ（濃いグレー基調・丸み強化） */
+    /* Expander（ドロップダウン）の修正 */
+    .streamlit-expanderHeader {
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        font-weight: 800;
+        color: #424242;
+        font-size: 1rem !important;
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 1rem !important; /* 内側の余白を確保 */
+    }
+    
+    /* Expander内のSVGアイコンとテキストが重ならないようにする */
+    .streamlit-expanderHeader svg {
+        margin-right: 12px !important;
+        flex-shrink: 0; /* アイコンが潰れないように */
+    }
+    
+    /* Expander内のテキスト要素 */
+    .streamlit-expanderHeader p {
+        margin: 0 !important;
+        line-height: 1.5 !important;
+    }
+
+    /* ボタンのカスタマイズ */
     .stButton > button {
-        background-color: #546E7A !important; /* ブルーグレー */
+        background-color: #546E7A !important;
         color: white !important;
         border: none;
-        border-radius: 50px !important; /* 丸ゴシックに合わせて完全に丸く */
+        border-radius: 50px !important;
         font-weight: 800 !important;
         padding: 0.6rem 2rem;
         transition: all 0.2s ease;
-        box-shadow: none !important; /* フラットに */
+        box-shadow: none !important;
+        letter-spacing: 0.05em !important;
     }
     .stButton > button:hover {
         background-color: #78909C !important;
         transform: scale(1.02);
     }
 
-    /* 削除ボタンなどは赤系 */
+    /* 削除ボタン */
     button[kind="primary"] {
          background-color: #EF5350 !important;
     }
@@ -74,32 +102,25 @@ st.markdown("""
          background-color: #E57373 !important;
     }
 
-    /* メトリクス（数字）の背景カード化 */
+    /* メトリクス（数字） */
     div[data-testid="stMetric"] {
         background-color: #fafafa;
         border: 1px solid #eeeeee;
         padding: 15px;
-        border-radius: 16px; /* 角丸を強く */
+        border-radius: 16px;
         text-align: center;
     }
     
-    /* Expanderのヘッダー */
-    .streamlit-expanderHeader {
-        background-color: #f5f5f5;
-        border-radius: 8px;
-        font-weight: 800;
-        color: #424242;
-    }
-    
-    /* サイドバー背景 */
+    /* サイドバー */
     section[data-testid="stSidebar"] {
         background-color: #fcfcfc;
         border-right: 1px solid #f0f0f0;
     }
     
-    /* データフレームの文字調整 */
+    /* データフレーム内のフォント調整 */
     div[data-testid="stDataFrame"] {
         font-family: 'M PLUS Rounded 1c', sans-serif !important;
+        letter-spacing: 0.02em !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -247,10 +268,9 @@ def show_live_monitor(current_event_id):
         "CO2排出量 (kg)": [total_solo/1000, total_share/1000]
     })
     
-    # グラフの色指定（グレー系 & 落ち着いたアクセント）
     fig = px.bar(chart_data, x="シナリオ", y="CO2排出量 (kg)", 
                     color="シナリオ", 
-                    color_discrete_sequence=["#B0BEC5", "#546E7A"], # 薄いグレーと濃いブルーグレー
+                    color_discrete_sequence=["#B0BEC5", "#546E7A"], 
                     text="CO2排出量 (kg)")
     
     fig.update_layout(
@@ -440,8 +460,10 @@ else:
                 col3.info(f"現在の実稼働台数: {actual_cars} 台")
                 
                 c_data = pd.DataFrame({"シナリオ": ["全員ソロ", "相乗り"], "CO2": [total_solo/1000, total_share/1000]})
+                
+                # グラフ色も落ち着いたブルーグレー系に変更
                 fig = px.bar(c_data, x="シナリオ", y="CO2", color="シナリオ", 
-                             color_discrete_sequence=["#B0BEC5", "#546E7A"], text="CO2")
+                             color_discrete_sequence=["#90A4AE", "#546E7A"], text="CO2")
                 
                 fig.update_layout(
                     plot_bgcolor="rgba(0,0,0,0)",
