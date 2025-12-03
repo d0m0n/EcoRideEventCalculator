@@ -28,21 +28,23 @@ def get_distance(origin, destination, api_key):
         "origins": origin,
         "destinations": destination,
         "key": api_key,
-        "language": "ja" # 日本語で処理
+        "language": "ja"
     }
     try:
         response = requests.get(url, params=params)
         data = response.json()
         if data["status"] == "OK":
-            # 距離（メートル）を取得してkmに変換
-            distance_m = data["rows"][0]["elements"][0]["distance"]["value"]
-            return distance_m / 1000.0
+            rows = data.get("rows", [])
+            if rows and rows[0].get("elements"):
+                element = rows[0]["elements"][0]
+                if element.get("status") == "OK":
+                    distance_m = element["distance"]["value"]
+                    return distance_m / 1000.0
     except Exception as e:
         st.error(f"距離計算エラー: {e}")
-        return None
     return None
 
-# シート読み込み（キャッシュなし）
+# シート読み込み
 def load_sheet(worksheet_name):
     conn = st.connection("gsheets", type=GSheetsConnection)
     try:
@@ -65,78 +67,95 @@ query_params = st.query_params
 current_event_id = query_params.get("event_id", None)
 
 # SecretsからAPIキー取得
-MAPS_API_KEY = st.secrets["general"]["google_maps_api_key"]
+try:
+    MAPS_API_KEY = st.secrets["general"]["google_maps_api_key"]
+except KeyError:
+    st.error("SecretsにGoogle Maps APIキーが設定されていません。")
+    st.stop()
 
 # ==========================================
 # モードA: イベントIDがない場合（主催者用画面）
 # ==========================================
 if not current_event_id:
     st.title("📅 イベント作成・管理パネル")
-    st.info("新しいイベントを作成するか、下のリストからイベントURLをコピーして参加者に送ってください。")
+    st.info("イベントの情報を入力してURLを発行してください。")
 
     # 新規イベント作成フォーム
     with st.form("create_event"):
         st.subheader("新規イベント作成")
-        e_name = st.text_input("イベント名", "〇〇フェス 2025")
+        e_name = st.text_input("イベント名", placeholder="例：〇〇音楽フェス 2025")
         e_date = st.date_input("開催日")
-        e_loc = st.text_input("開催場所 (詳細な住所を入力)", "東京都千代田区千代田1-1")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            e_loc_name = st.text_input("開催場所名", placeholder="例：日本武道館")
+        with col2:
+            e_loc_addr = st.text_input("開催場所の住所 (距離計算用)", placeholder="例：東京都千代田区北の丸公園2-3")
+            st.caption("※Googleマップで検索できる正確な住所を入力してください")
         
         submitted = st.form_submit_button("イベントを作成")
-        if submitted and e_name and e_loc:
-            new_id = str(uuid.uuid4())[:8] # ランダムなID生成
-            append_to_sheet("events", {
-                "event_id": new_id,
-                "event_name": e_name,
-                "event_date": str(e_date),
-                "location": e_loc
-            })
-            st.success(f"イベントを作成しました！ ID: {new_id}")
-            st.experimental_rerun()
+        
+        if submitted:
+            if not e_name or not e_loc_name or not e_loc_addr:
+                st.warning("すべての項目を入力してください。")
+            else:
+                new_id = str(uuid.uuid4())[:8] # ランダムなID生成
+                append_to_sheet("events", {
+                    "event_id": new_id,
+                    "event_name": e_name,
+                    "event_date": str(e_date),
+                    "location_name": e_loc_name,
+                    "location_address": e_loc_addr
+                })
+                st.success(f"イベント「{e_name}」を作成しました！")
+                st.experimental_rerun()
 
     st.markdown("---")
     st.subheader("作成済みイベント一覧")
     
     events_df = load_sheet("events")
     if not events_df.empty:
-        for idx, row in events_df.iterrows():
-            # 招待用URLの生成
-            # ※注意: ローカル環境とCloud環境でベースURLが変わりますが、ブラウザのアドレスバーのURLを使ってください
-            base_url = "https://ecorideeventcalculator-2vhvzkr7oenknbuegaremc.streamlit.app/" # あなたのアプリURLに書き換えてもOK
-            invite_url = f"{base_url}?event_id={row['event_id']}"
-            
-            with st.expander(f"📍 {row['event_name']} ({row['event_date']})"):
-                st.write(f"**開催地:** {row['location']}")
-                st.code(invite_url, language="text")
-                st.caption("👆 このURLを参加者に共有してください")
+        # 必要なカラムがあるか確認
+        if "location_name" in events_df.columns:
+            for idx, row in events_df.iterrows():
+                base_url = "https://ecorideeventcalculator-2vhvzkr7oenknbuegaremc.streamlit.app/" # あなたのアプリURL
+                invite_url = f"{base_url}?event_id={row['event_id']}"
+                
+                with st.expander(f"📍 {row['event_name']} ({row['event_date']})"):
+                    st.write(f"**場所:** {row['location_name']}")
+                    st.caption(f"住所: {row['location_address']}")
+                    st.code(invite_url, language="text")
+                    st.caption("👆 このURLを参加者に共有してください")
+        else:
+            st.warning("スプレッドシートの列構造が古い可能性があります。'location_name', 'location_address' 列があるか確認してください。")
 
 # ==========================================
 # モードB: イベントIDがある場合（参加者・集計画面）
 # ==========================================
 else:
-    # イベント情報の取得
     events_df = load_sheet("events")
-    # 文字列型に統一して検索
     events_df["event_id"] = events_df["event_id"].astype(str)
     target_event = events_df[events_df["event_id"] == str(current_event_id)]
     
     if target_event.empty:
-        st.error("指定されたイベントが見つかりません。URLを確認してください。")
+        st.error("指定されたイベントが見つかりません。")
         if st.button("トップに戻る"):
             st.query_params.clear()
             st.experimental_rerun()
     else:
         event_data = target_event.iloc[0]
-        st.title(f"🚗 {event_data['event_name']} CO2削減チェッカー")
-        st.write(f"**開催日:** {event_data['event_date']} / **会場:** {event_data['location']}")
+        
+        # タイトル部分
+        st.title(f"🚗 {event_data['event_name']}")
+        st.markdown(f"**開催日:** {event_data['event_date']}　|　**会場:** {event_data['location_name']}")
         
         # サイドバー：参加登録
         st.sidebar.header("参加登録フォーム")
         with st.sidebar.form("join_form"):
+            st.write("あなたの移動情報を登録してください")
             name = st.text_input("グループ名 / お名前")
-            start_point = st.text_input("出発地 (住所や建物名)", help="正確な距離計算のために詳細に入力してください")
-            
-            # 距離の自動計算ボタン（フォーム内では動作しないため、計算ロジックはsubmit後に実施）
-            st.caption("※「登録」を押すと、会場までの距離を自動計算して登録します。")
+            start_point = st.text_input("出発地 (住所や建物名)", placeholder="例: 名古屋駅")
+            st.caption(f"目的地: {event_data['location_name']} ({event_data['location_address']})")
             
             num_people = st.number_input("人数", 1, 10, 2)
             car_type = st.selectbox("使用する車両", list(CO2_EMISSION_FACTORS.keys()))
@@ -144,8 +163,9 @@ else:
             join_submitted = st.form_submit_button("計算して登録")
             
             if join_submitted and start_point:
+                # 距離計算には「住所(location_address)」を使用する
                 with st.spinner("Google Mapsで距離を計測中..."):
-                    dist_km = get_distance(start_point, event_data['location'], MAPS_API_KEY)
+                    dist_km = get_distance(start_point, event_data['location_address'], MAPS_API_KEY)
                 
                 if dist_km:
                     append_to_sheet("participants", {
@@ -159,18 +179,17 @@ else:
                     st.success(f"登録完了！ 会場まで約 {dist_km:.1f}km です。")
                     st.experimental_rerun()
                 else:
-                    st.error("場所が見つかりませんでした。出発地を詳しく入力してください。")
+                    st.error("出発地または会場の場所が見つかりませんでした。詳細な住所を入力してみてください。")
 
-        # 集計結果の表示（そのイベントの参加者のみフィルタリング）
+        # 集計結果の表示
         all_participants = load_sheet("participants")
         
-        if not all_participants.empty:
-            # IDでフィルタリング
+        if not all_participants.empty and "event_id" in all_participants.columns:
             all_participants["event_id"] = all_participants["event_id"].astype(str)
             df_p = all_participants[all_participants["event_id"] == str(current_event_id)]
             
             if not df_p.empty:
-                # ここから計算ロジック（以前と同じ）
+                # 計算ロジック
                 total_solo_co2 = 0
                 total_share_co2 = 0
                 
@@ -188,11 +207,13 @@ else:
 
                 # 可視化エリア
                 st.markdown("---")
+                st.subheader("📊 CO2削減効果")
+                
                 col1, col2 = st.columns(2)
                 reduction_kg = (total_solo_co2 - total_share_co2) / 1000
                 
                 col1.metric("みんなの総CO2削減量", f"{reduction_kg:.2f} kg-CO2")
-                col1.success(f"杉の木 約 {reduction_kg / 14:.1f} 本分の吸収量！ 🌲")
+                col1.success(f"🌲 杉の木 約 {reduction_kg / 14:.1f} 本分の年間吸収量に相当！")
                 
                 # グラフ
                 chart_data = pd.DataFrame({
@@ -205,11 +226,12 @@ else:
                 
                 st.markdown("#### 参加者リスト")
                 st.dataframe(df_p[["name", "start_point", "distance", "people", "car_type"]])
-                
-                if st.button("トップページ（イベント管理）に戻る"):
-                    st.query_params.clear()
-                    st.experimental_rerun()
             else:
-                st.info("まだ参加者が登録されていません。サイドバーから登録しましょう！")
+                st.info("まだ参加者が登録されていません。")
         else:
              st.info("まだ参加者が登録されていません。")
+             
+        st.markdown("---")
+        if st.button("管理者用トップページに戻る"):
+            st.query_params.clear()
+            st.experimental_rerun()
