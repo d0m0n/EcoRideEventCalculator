@@ -31,6 +31,46 @@ MAX_CAPACITY = {
 
 # ページ設定
 st.set_page_config(page_title="イベント相乗りCO2削減シミュレーター", layout="wide")
+# --- カスタムCSS
+# の注入 ---
+st.markdown("""
+<style>
+    /* 全体のフォント調整 */
+    html, body, [class*="css"] {
+        font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+    }
+    
+    /* メトリクス（数字）の背景をカード化 */
+    div[data-testid="stMetric"] {
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+        text-align: center;
+    }
+    
+    /* ボタンを角丸にする */
+    .stButton>button {
+        border-radius: 20px;
+        font-weight: bold;
+        padding: 0.5rem 2rem;
+    }
+    
+    /* ヘッダーの装飾 */
+    h1 {
+        color: #2E8B57;
+        font-weight: 800;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    /* Expanderの見た目を少しリッチに */
+    .streamlit-expanderHeader {
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # --- 関数群 ---
 
