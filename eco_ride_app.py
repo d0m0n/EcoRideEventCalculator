@@ -7,6 +7,7 @@ import requests
 from streamlit_gsheets import GSheetsConnection
 
 # --- 設定・定数 ---
+# ※出典: 国土交通省「自動車燃費一覧」、環境省「排出係数一覧」などを参考に設定した概算値
 CO2_EMISSION_FACTORS = {
     "ガソリン車 (普通)": 130, "ガソリン車 (大型・ミニバン)": 180,
     "軽自動車": 100, "ディーゼル車": 110, "ハイブリッド車": 70, "電気自動車 (EV)": 0
@@ -41,7 +42,7 @@ def get_place_suggestions(query, api_key):
             for prediction in data["predictions"]:
                 suggestions.append({
                     "label": prediction["description"],
-                    "value": prediction["description"]
+                    "value": prediction["description"]  # 実際に使う住所
                 })
             return suggestions
     except Exception as e:
@@ -217,6 +218,31 @@ else:
         loc_addr = event_data['location_address'] if 'location_address' in event_data else loc_name
         
         st.markdown(f"**開催日:** {event_data['event_date']}　|　**会場:** {loc_name}")
+
+        # --- 👇 ここに出典情報を追加しました ---
+        with st.expander("📏 CO2排出量の計算式・根拠データ（出典）について"):
+            st.markdown("""
+            本アプリにおけるCO2排出量は、以下の計算式および公的機関の公表データを参考に算出した概算値です。
+            
+            ##### 1. 計算式
+            $$
+            \\text{CO}_2 \\text{排出量 (g)} = \\text{片道距離 (km)} \\times 2 (\\text{往復}) \\times \\text{車種別排出係数 (g/km)}
+            $$
+            
+            ##### 2. 車種別排出係数の設定値
+            **国土交通省「自動車燃費一覧」** および **環境省「温室効果ガス排出量算定・報告・公表制度」** の数値を参考に、独自に設定しています。
+            """)
+            
+            # データフレームで係数表を表示
+            factor_df = pd.DataFrame(list(CO2_EMISSION_FACTORS.items()), columns=["車種区分", "排出係数 (g-CO2/km)"])
+            st.table(factor_df)
+            
+            st.caption("""
+            * **電気自動車 (EV):** 走行時の排出量はゼロとして計算しています（発電時の電源構成等は考慮していません）。
+            * **実際の排出量:** 道路状況（渋滞等）やエアコンの使用有無、乗車人数により変動します。あくまで目安としてご利用ください。
+            * **参考リンク:** [国土交通省：運輸部門における二酸化炭素排出量](https://www.mlit.go.jp/sogoseisaku/environment/sosei_environment_tk_000007.html)
+            """)
+        # --- 👆 ここまで ---
         
         # --- サイドバー：参加登録 ---
         st.sidebar.header("参加登録フォーム")
@@ -273,34 +299,27 @@ else:
         
         if not all_participants.empty and "event_id" in all_participants.columns:
             all_participants["event_id"] = all_participants["event_id"].astype(str)
-            
-            # フィルタリングする前に、元のインデックスを保持しておく
             all_participants['original_index'] = all_participants.index
-            
-            # 現在のイベントの参加者のみ抽出
             df_p = all_participants[all_participants["event_id"] == str(current_event_id)].copy()
             
             if not df_p.empty:
-                # --- 計算ロジック ---
                 total_solo_co2 = 0
                 total_share_co2 = 0
                 for index, row in df_p.iterrows():
                     factor = CO2_EMISSION_FACTORS.get(row['car_type'], 130)
                     capacity = MAX_CAPACITY.get(row['car_type'], 5)
                     
-                    # データの型変換（エラー防止）
                     try:
                         dist = float(row['distance'])
                         ppl = int(row['people'])
                     except:
-                        continue # データ不正時はスキップ
+                        continue
 
                     solo = ppl * dist * factor * 2
                     share = math.ceil(ppl / capacity) * dist * factor * 2
                     total_solo_co2 += solo
                     total_share_co2 += share
 
-                # --- グラフ表示 ---
                 st.markdown("---")
                 st.subheader("📊 CO2削減効果")
                 col1, col2 = st.columns(2)
@@ -313,32 +332,28 @@ else:
                     "CO2排出量 (kg)": [total_solo_co2/1000, total_share_co2/1000]
                 })
                 
-                # 棒グラフの数字表示設定
                 fig = px.bar(
                     chart_data, 
                     x="シナリオ", 
                     y="CO2排出量 (kg)", 
                     color="シナリオ", 
                     color_discrete_sequence=["#FF6B6B", "#4ECDC4"],
-                    text="CO2排出量 (kg)" # ここで数値を指定
+                    text="CO2排出量 (kg)"
                 )
                 
-                # 数字を大きく、見やすくする設定
                 fig.update_traces(
-                    texttemplate='%{y:.1f} kg', # 小数点1桁まで表示
-                    textposition='inside',      # 棒の中に表示（入りきらない場合は外に出る）
-                    textfont=dict(size=30, color='white', family="Arial Black") # フォントサイズ30で白文字
+                    texttemplate='%{y:.1f} kg',
+                    textposition='inside',
+                    textfont=dict(size=30, color='white', family="Arial Black")
                 )
                 
                 st.plotly_chart(fig, use_container_width=True)
                 
-                # --- 参加者リスト（編集・削除機能付き） ---
                 st.markdown("#### 📝 参加者リスト・編集")
                 st.caption("各カードを開くと、登録内容の修正や削除ができます。")
                 
-                # 最新の登録が上に来るように逆順でループ
                 for idx, row in df_p[::-1].iterrows():
-                    original_idx = row['original_index'] # スプレッドシート上の本当の行番号
+                    original_idx = row['original_index']
                     
                     with st.expander(f"👤 {row['name']} （{row['start_point']} から {row['people']}名）"):
                         with st.form(f"participant_edit_{original_idx}"):
@@ -349,8 +364,6 @@ else:
                                 p_car = st.selectbox("車種", list(CO2_EMISSION_FACTORS.keys()), index=list(CO2_EMISSION_FACTORS.keys()).index(row['car_type']) if row['car_type'] in CO2_EMISSION_FACTORS else 0)
                             with c2:
                                 p_start = st.text_input("出発地", value=row['start_point'])
-                                # 距離は手動修正させず、再計算ボタンなどで対応もできるが、今回は簡易的に数値入力も許可（またはreadonly）
-                                # ここでは再計算ロジックを入れると複雑になるため、距離はそのままか、手動補正可能にする
                                 p_dist = st.number_input("距離 (km)", value=float(row['distance']))
                             
                             btn_col1, btn_col2 = st.columns(2)
@@ -360,21 +373,17 @@ else:
                                 delete_p_btn = st.form_submit_button("この登録を削除", type="primary")
                             
                             if update_p_btn:
-                                # 元のデータフレーム(all_participants)を更新
                                 all_participants.at[original_idx, 'name'] = p_name
                                 all_participants.at[original_idx, 'people'] = p_people
                                 all_participants.at[original_idx, 'car_type'] = p_car
                                 all_participants.at[original_idx, 'start_point'] = p_start
                                 all_participants.at[original_idx, 'distance'] = p_dist
-                                
-                                # 更新処理（original_index列は保存したくないので削除してから）
                                 save_df = all_participants.drop(columns=['original_index'])
                                 update_sheet_data("participants", save_df)
                                 st.success("参加者情報を更新しました！")
                                 st.rerun()
 
                             if delete_p_btn:
-                                # 削除処理
                                 all_participants = all_participants.drop(original_idx)
                                 save_df = all_participants.drop(columns=['original_index'])
                                 update_sheet_data("participants", save_df)
