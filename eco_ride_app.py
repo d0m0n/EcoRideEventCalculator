@@ -29,24 +29,23 @@ MAX_CAPACITY = {
 # ページ設定
 st.set_page_config(page_title="イベント相乗りCO2削減シミュレーター", layout="wide")
 
-# --- カスタムCSSの注入（文字重なり修正版） ---
+# --- カスタムCSSの注入（Google Fonts復旧 & レイアウト調整版） ---
 st.markdown("""
-<head>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;800&display=swap" rel="stylesheet">
-</head>
 <style>
-    /* 全体のフォント設定：行間と文字間隔を広げて重なりを防ぐ */
+    /* 1. Google Fontsの読み込み（@importを使用） */
+    @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;800&display=swap');
+
+    /* 2. フォント適用とレイアウト調整（文字かぶり防止） */
     html, body, [class*="css"], .stApp {
         font-family: 'M PLUS Rounded 1c', sans-serif !important;
         color: #333333;
-        line-height: 1.6 !important; /* 行間を広げる */
+        line-height: 1.6 !important; /* 行間を広げて重なりを防ぐ */
         letter-spacing: 0.05em !important; /* 文字間隔を少し広げる */
     }
     
     /* ヘッダー設定 */
     h1, h2, h3 {
+        font-family: 'M PLUS Rounded 1c', sans-serif !important;
         font-weight: 800 !important;
         color: #424242 !important;
         line-height: 1.4 !important;
@@ -68,17 +67,19 @@ st.markdown("""
     /* Expander内のSVGアイコンとテキストが重ならないようにする */
     .streamlit-expanderHeader svg {
         margin-right: 12px !important;
-        flex-shrink: 0; /* アイコンが潰れないように */
+        flex-shrink: 0;
     }
     
     /* Expander内のテキスト要素 */
     .streamlit-expanderHeader p {
+        font-family: 'M PLUS Rounded 1c', sans-serif !important;
         margin: 0 !important;
         line-height: 1.5 !important;
     }
 
     /* ボタンのカスタマイズ */
     .stButton > button {
+        font-family: 'M PLUS Rounded 1c', sans-serif !important;
         background-color: #546E7A !important;
         color: white !important;
         border: none;
@@ -87,7 +88,6 @@ st.markdown("""
         padding: 0.6rem 2rem;
         transition: all 0.2s ease;
         box-shadow: none !important;
-        letter-spacing: 0.05em !important;
     }
     .stButton > button:hover {
         background-color: #78909C !important;
@@ -110,6 +110,12 @@ st.markdown("""
         border-radius: 16px;
         text-align: center;
     }
+    div[data-testid="stMetricLabel"] {
+        font-family: 'M PLUS Rounded 1c', sans-serif !important;
+    }
+    div[data-testid="stMetricValue"] {
+        font-family: 'M PLUS Rounded 1c', sans-serif !important;
+    }
     
     /* サイドバー */
     section[data-testid="stSidebar"] {
@@ -120,7 +126,9 @@ st.markdown("""
     /* データフレーム内のフォント調整 */
     div[data-testid="stDataFrame"] {
         font-family: 'M PLUS Rounded 1c', sans-serif !important;
-        letter-spacing: 0.02em !important;
+    }
+    div[data-testid="stDataFrame"] th, div[data-testid="stDataFrame"] td {
+        font-family: 'M PLUS Rounded 1c', sans-serif !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -273,6 +281,7 @@ def show_live_monitor(current_event_id):
                     color_discrete_sequence=["#B0BEC5", "#546E7A"], 
                     text="CO2排出量 (kg)")
     
+    # グラフのフォント設定（M PLUS Rounded 1c を明示）
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
@@ -461,9 +470,8 @@ else:
                 
                 c_data = pd.DataFrame({"シナリオ": ["全員ソロ", "相乗り"], "CO2": [total_solo/1000, total_share/1000]})
                 
-                # グラフ色も落ち着いたブルーグレー系に変更
                 fig = px.bar(c_data, x="シナリオ", y="CO2", color="シナリオ", 
-                             color_discrete_sequence=["#90A4AE", "#546E7A"], text="CO2")
+                             color_discrete_sequence=["#B0BEC5", "#546E7A"], text="CO2")
                 
                 fig.update_layout(
                     plot_bgcolor="rgba(0,0,0,0)",
