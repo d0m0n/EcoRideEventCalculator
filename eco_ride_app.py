@@ -29,69 +29,66 @@ MAX_CAPACITY = {
 # ページ設定
 st.set_page_config(page_title="イベント相乗りCO2削減シミュレーター", layout="wide")
 
-# --- カスタムCSSの注入（Google Fonts復旧 & レイアウト調整版） ---
+# --- カスタムCSSの注入（Noto Sans JP 版） ---
 st.markdown("""
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+</head>
 <style>
-    /* 1. Google Fontsの読み込み（@importを使用） */
-    @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;800&display=swap');
-
-    /* 2. フォント適用とレイアウト調整（文字かぶり防止） */
-    html, body, [class*="css"], .stApp {
-        font-family: 'M PLUS Rounded 1c', sans-serif !important;
+    /* 1. 全要素にNoto Sans JPを適用 */
+    html, body, [class*="css"], .stApp, font, div, span, p, h1, h2, h3, button, input, select, textarea {
+        font-family: 'Noto Sans JP', sans-serif !important;
         color: #333333;
-        line-height: 1.6 !important; /* 行間を広げて重なりを防ぐ */
-        letter-spacing: 0.05em !important; /* 文字間隔を少し広げる */
+        line-height: 1.6 !important;
+        letter-spacing: 0.03em !important; /* 丸ゴシックより少し詰めてスッキリさせる */
     }
     
-    /* ヘッダー設定 */
+    /* 2. ヘッダー設定（濃いグレー） */
     h1, h2, h3 {
-        font-family: 'M PLUS Rounded 1c', sans-serif !important;
-        font-weight: 800 !important;
+        font-weight: 700 !important; /* 800から700へ（Noto Sansの太字） */
         color: #424242 !important;
         line-height: 1.4 !important;
         padding-bottom: 0.5rem;
     }
     
-    /* Expander（ドロップダウン）の修正 */
+    /* 3. Expander（ドロップダウン） */
     .streamlit-expanderHeader {
         background-color: #f5f5f5;
-        border-radius: 8px;
-        font-weight: 800;
+        border-radius: 6px; /* 角丸を少しシャープに */
+        font-weight: 700;
         color: #424242;
         font-size: 1rem !important;
         display: flex;
         align-items: center;
-        padding: 0.5rem 1rem !important; /* 内側の余白を確保 */
+        padding: 0.5rem 1rem !important;
     }
-    
-    /* Expander内のSVGアイコンとテキストが重ならないようにする */
     .streamlit-expanderHeader svg {
         margin-right: 12px !important;
         flex-shrink: 0;
     }
-    
-    /* Expander内のテキスト要素 */
     .streamlit-expanderHeader p {
-        font-family: 'M PLUS Rounded 1c', sans-serif !important;
         margin: 0 !important;
-        line-height: 1.5 !important;
+        font-family: 'Noto Sans JP', sans-serif !important;
     }
 
-    /* ボタンのカスタマイズ */
+    /* 4. ボタンのカスタマイズ（シンプルで機能的なデザイン） */
     .stButton > button {
-        font-family: 'M PLUS Rounded 1c', sans-serif !important;
+        font-family: 'Noto Sans JP', sans-serif !important;
         background-color: #546E7A !important;
         color: white !important;
         border: none;
-        border-radius: 50px !important;
-        font-weight: 800 !important;
+        border-radius: 6px !important; /* 丸みを抑えてプロっぽく */
+        font-weight: 700 !important;
         padding: 0.6rem 2rem;
         transition: all 0.2s ease;
-        box-shadow: none !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important; /* 僅かな影で立体感 */
     }
     .stButton > button:hover {
         background-color: #78909C !important;
-        transform: scale(1.02);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.15) !important;
     }
 
     /* 削除ボタン */
@@ -102,33 +99,40 @@ st.markdown("""
          background-color: #E57373 !important;
     }
 
-    /* メトリクス（数字） */
+    /* 5. メトリクス（数字） */
     div[data-testid="stMetric"] {
-        background-color: #fafafa;
-        border: 1px solid #eeeeee;
+        background-color: #ffffff; /* 完全な白ですっきり */
+        border: 1px solid #e0e0e0;
         padding: 15px;
-        border-radius: 16px;
+        border-radius: 8px;
         text-align: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* 微細な影 */
     }
     div[data-testid="stMetricLabel"] {
-        font-family: 'M PLUS Rounded 1c', sans-serif !important;
+        font-family: 'Noto Sans JP', sans-serif !important;
+        font-size: 0.9rem !important;
+        color: #757575 !important;
     }
     div[data-testid="stMetricValue"] {
-        font-family: 'M PLUS Rounded 1c', sans-serif !important;
+        font-family: 'Noto Sans JP', sans-serif !important;
+        font-weight: 700 !important;
+        color: #212121 !important;
     }
     
     /* サイドバー */
     section[data-testid="stSidebar"] {
-        background-color: #fcfcfc;
-        border-right: 1px solid #f0f0f0;
+        background-color: #fafafa;
+        border-right: 1px solid #eeeeee;
     }
     
-    /* データフレーム内のフォント調整 */
+    /* データフレーム */
     div[data-testid="stDataFrame"] {
-        font-family: 'M PLUS Rounded 1c', sans-serif !important;
+        font-family: 'Noto Sans JP', sans-serif !important;
     }
-    div[data-testid="stDataFrame"] th, div[data-testid="stDataFrame"] td {
-        font-family: 'M PLUS Rounded 1c', sans-serif !important;
+    div[data-testid="stDataFrame"] th {
+        background-color: #f5f5f5 !important;
+        color: #424242 !important;
+        font-weight: 700 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -276,22 +280,22 @@ def show_live_monitor(current_event_id):
         "CO2排出量 (kg)": [total_solo/1000, total_share/1000]
     })
     
+    # グラフの色指定（グレー系 & 落ち着いたアクセント）
     fig = px.bar(chart_data, x="シナリオ", y="CO2排出量 (kg)", 
                     color="シナリオ", 
                     color_discrete_sequence=["#B0BEC5", "#546E7A"], 
                     text="CO2排出量 (kg)")
     
-    # グラフのフォント設定（M PLUS Rounded 1c を明示）
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         showlegend=False,
         yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'),
-        font=dict(family="M PLUS Rounded 1c", size=14)
+        font=dict(family="Noto Sans JP", size=14)
     )
     
     fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside',
-                        textfont=dict(size=40, color='white', family="M PLUS Rounded 1c"))
+                        textfont=dict(size=40, color='white', family="Noto Sans JP"))
     st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("#### 📋 最新の参加者リスト")
@@ -469,7 +473,6 @@ else:
                 col3.info(f"現在の実稼働台数: {actual_cars} 台")
                 
                 c_data = pd.DataFrame({"シナリオ": ["全員ソロ", "相乗り"], "CO2": [total_solo/1000, total_share/1000]})
-                
                 fig = px.bar(c_data, x="シナリオ", y="CO2", color="シナリオ", 
                              color_discrete_sequence=["#B0BEC5", "#546E7A"], text="CO2")
                 
@@ -478,11 +481,11 @@ else:
                     paper_bgcolor="rgba(0,0,0,0)",
                     showlegend=False,
                     yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)'),
-                    font=dict(family="M PLUS Rounded 1c", size=14)
+                    font=dict(family="Noto Sans JP", size=14)
                 )
 
                 fig.update_traces(texttemplate='%{y:.1f} kg', textposition='inside', 
-                                  textfont=dict(size=30, color='white', family="M PLUS Rounded 1c"))
+                                  textfont=dict(size=30, color='white', family="Noto Sans JP"))
                 st.plotly_chart(fig, use_container_width=True)
 
                 st.markdown("#### 🛠 登録内容の修正・削除")
