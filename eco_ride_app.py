@@ -108,14 +108,14 @@ if not current_event_id:
                     "location_address": e_loc_addr
                 })
                 st.success(f"イベント「{e_name}」を作成しました！")
-                st.experimental_rerun()
+                st.rerun()  # ← ここを修正しました
 
     st.markdown("---")
     st.subheader("作成済みイベント一覧")
     
     events_df = load_sheet("events")
     if not events_df.empty:
-        # 必要なカラムがあるか確認
+        # location_name列があるか確認（古いデータ対策）
         if "location_name" in events_df.columns:
             for idx, row in events_df.iterrows():
                 base_url = "https://ecorideeventcalculator-2vhvzkr7oenknbuegaremc.streamlit.app/" # あなたのアプリURL
@@ -127,7 +127,7 @@ if not current_event_id:
                     st.code(invite_url, language="text")
                     st.caption("👆 このURLを参加者に共有してください")
         else:
-            st.warning("スプレッドシートの列構造が古い可能性があります。'location_name', 'location_address' 列があるか確認してください。")
+             st.warning("スプレッドシートの列構造が古い可能性があります。'location_name' 列があるか確認してください。")
 
 # ==========================================
 # モードB: イベントIDがある場合（参加者・集計画面）
@@ -141,13 +141,18 @@ else:
         st.error("指定されたイベントが見つかりません。")
         if st.button("トップに戻る"):
             st.query_params.clear()
-            st.experimental_rerun()
+            st.rerun() # ← ここを修正しました
     else:
         event_data = target_event.iloc[0]
         
         # タイトル部分
         st.title(f"🚗 {event_data['event_name']}")
-        st.markdown(f"**開催日:** {event_data['event_date']}　|　**会場:** {event_data['location_name']}")
+        
+        # 場所名と住所の表示分け
+        loc_name = event_data['location_name'] if 'location_name' in event_data else event_data['location']
+        loc_addr = event_data['location_address'] if 'location_address' in event_data else loc_name
+        
+        st.markdown(f"**開催日:** {event_data['event_date']}　|　**会場:** {loc_name}")
         
         # サイドバー：参加登録
         st.sidebar.header("参加登録フォーム")
@@ -155,7 +160,7 @@ else:
             st.write("あなたの移動情報を登録してください")
             name = st.text_input("グループ名 / お名前")
             start_point = st.text_input("出発地 (住所や建物名)", placeholder="例: 名古屋駅")
-            st.caption(f"目的地: {event_data['location_name']} ({event_data['location_address']})")
+            st.caption(f"目的地: {loc_name}")
             
             num_people = st.number_input("人数", 1, 10, 2)
             car_type = st.selectbox("使用する車両", list(CO2_EMISSION_FACTORS.keys()))
@@ -163,9 +168,8 @@ else:
             join_submitted = st.form_submit_button("計算して登録")
             
             if join_submitted and start_point:
-                # 距離計算には「住所(location_address)」を使用する
                 with st.spinner("Google Mapsで距離を計測中..."):
-                    dist_km = get_distance(start_point, event_data['location_address'], MAPS_API_KEY)
+                    dist_km = get_distance(start_point, loc_addr, MAPS_API_KEY)
                 
                 if dist_km:
                     append_to_sheet("participants", {
@@ -177,7 +181,7 @@ else:
                         "car_type": car_type
                     })
                     st.success(f"登録完了！ 会場まで約 {dist_km:.1f}km です。")
-                    st.experimental_rerun()
+                    st.rerun() # ← ここを修正しました
                 else:
                     st.error("出発地または会場の場所が見つかりませんでした。詳細な住所を入力してみてください。")
 
@@ -234,4 +238,4 @@ else:
         st.markdown("---")
         if st.button("管理者用トップページに戻る"):
             st.query_params.clear()
-            st.experimental_rerun()
+            st.rerun() # ← ここを修正しました
