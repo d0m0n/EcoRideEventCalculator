@@ -21,7 +21,7 @@ st.set_page_config(page_title="イベント相乗りCO2削減シミュレータ�
 
 # --- 関数群 ---
 
-# Google Places API (Autocomplete) で場所の候補を取得する関数
+# Google Places API (Autocomplete) で場所の候補を取得する関数（デバッグ機能付き）
 def get_place_suggestions(query, api_key):
     if not query:
         return []
@@ -31,22 +31,32 @@ def get_place_suggestions(query, api_key):
         "input": query,
         "key": api_key,
         "language": "ja",
-        "components": "country:jp" # 日本国内に限定
+        "components": "country:jp"
     }
     try:
         response = requests.get(url, params=params)
         data = response.json()
+        
+        # --- ここからデバッグ用コード ---
+        if data["status"] != "OK":
+            # 成功しなかった場合、その理由を画面に表示する
+            st.error(f"Google API エラー: {data['status']}")
+            if "error_message" in data:
+                st.error(f"詳細: {data['error_message']}")
+            return []
+        # --- ここまで ---
+
         if data["status"] == "OK":
-            # 候補のリストを作成 (表示名と裏側のデータを保持)
             suggestions = []
             for prediction in data["predictions"]:
                 suggestions.append({
-                    "label": prediction["description"], # ユーザーに見せる候補名
-                    "value": prediction["description"]  # 実際に使う住所
+                    "label": prediction["description"],
+                    "value": prediction["description"]
                 })
             return suggestions
+            
     except Exception as e:
-        st.error(f"場所検索エラー: {e}")
+        st.error(f"通信エラー: {e}")
     return []
 
 # Google Maps APIで距離を計算する関数
