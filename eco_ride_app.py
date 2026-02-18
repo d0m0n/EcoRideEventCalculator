@@ -59,9 +59,30 @@ def inject_css():
     /* ===== グローバル ===== */
     * { font-family: 'Noto Sans JP', sans-serif !important; box-sizing: border-box; }
 
-    .stApp {
+    /* ダークモード含め背景を強制上書き */
+    html,
+    body,
+    .stApp,
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMain"],
+    [data-testid="stMain"] > div,
+    .main,
+    .main > div {
         background: linear-gradient(160deg, #EFF6EF 0%, #F5F9F5 50%, #EEF4EE 100%) !important;
-        min-height: 100vh;
+    }
+
+    /* トップナビバーの背景 */
+    [data-testid="stHeader"] {
+        background: rgba(239, 246, 239, 0.92) !important;
+        backdrop-filter: blur(8px) !important;
+        border-bottom: 1px solid #C8E6C9 !important;
+    }
+
+    /* ツールバーアイコンも暗く */
+    [data-testid="stToolbar"] button svg,
+    [data-testid="stDecoration"] {
+        color: #2E7D32 !important;
+        fill: #2E7D32 !important;
     }
 
     /* ===== メインコンテンツ余白 ===== */
