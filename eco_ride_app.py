@@ -83,43 +83,16 @@ def inject_css():
         50%       { opacity: 0.3; }
     }
 
-    /* ===== グローバル ===== */
+    /* ===== グローバル（モード共通） ===== */
     * { box-sizing: border-box; }
 
-    /* ダークモード含め背景を強制上書き */
-    html,
-    body,
-    .stApp,
-    [data-testid="stAppViewContainer"],
-    [data-testid="stMain"],
-    [data-testid="stMain"] > div,
-    .main,
-    .main > div {
-        background: linear-gradient(160deg, #EFF6EF 0%, #F5F9F5 50%, #EEF4EE 100%) !important;
-    }
-
-    /* トップナビバーの背景 */
-    [data-testid="stHeader"] {
-        background: rgba(239, 246, 239, 0.92) !important;
-        backdrop-filter: blur(8px) !important;
-        border-bottom: 1px solid #C8E6C9 !important;
-    }
-
-    /* ===== メインコンテンツ余白 ===== */
     .block-container {
         padding-top: 2rem !important;
         padding-bottom: 2rem !important;
         max-width: 1100px !important;
     }
 
-    /* ===== サイドバー ===== */
-    [data-testid="stSidebar"] {
-        background: #FFFFFF !important;
-        border-right: 3px solid #C8E6C9 !important;
-        box-shadow: 2px 0 12px rgba(46,125,50,0.08) !important;
-    }
-
-    /* ===== ボタン ===== */
+    /* ===== ボタン（モード共通） ===== */
     .stButton > button {
         background: linear-gradient(135deg, #2E7D32 0%, #43A047 100%) !important;
         color: #FFFFFF !important;
@@ -129,24 +102,25 @@ def inject_css():
         font-weight: 600 !important;
         font-size: 0.9rem !important;
         transition: all 0.25s ease !important;
-        box-shadow: 0 3px 10px rgba(46,125,50,0.25) !important;
+        box-shadow: 0 3px 10px rgba(46,125,50,0.30) !important;
     }
     .stButton > button:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(46,125,50,0.38) !important;
+        box-shadow: 0 6px 20px rgba(46,125,50,0.45) !important;
         background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%) !important;
     }
     .stButton > button:active { transform: translateY(0) !important; }
     .stButton > button[kind="primary"] {
         background: linear-gradient(135deg, #B71C1C 0%, #E53935 100%) !important;
-        box-shadow: 0 3px 10px rgba(183,28,28,0.25) !important;
+        box-shadow: 0 3px 10px rgba(183,28,28,0.30) !important;
     }
     .stButton > button[kind="primary"]:hover {
         background: linear-gradient(135deg, #7F0000 0%, #B71C1C 100%) !important;
-        box-shadow: 0 6px 20px rgba(183,28,28,0.38) !important;
+        box-shadow: 0 6px 20px rgba(183,28,28,0.45) !important;
     }
+    .stButton > button *, .stButton > button { color: #FFFFFF !important; }
 
-    /* ===== フォーム送信ボタン ===== */
+    /* ===== フォーム送信ボタン（モード共通） ===== */
     [data-testid="stFormSubmitButton"] > button {
         background: linear-gradient(135deg, #2E7D32 0%, #43A047 100%) !important;
         color: #FFFFFF !important;
@@ -154,114 +128,23 @@ def inject_css():
         border-radius: 10px !important;
         font-weight: 600 !important;
         transition: all 0.25s ease !important;
-        box-shadow: 0 3px 10px rgba(46,125,50,0.25) !important;
+        box-shadow: 0 3px 10px rgba(46,125,50,0.30) !important;
         width: 100% !important;
     }
     [data-testid="stFormSubmitButton"] > button:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(46,125,50,0.38) !important;
+        box-shadow: 0 6px 20px rgba(46,125,50,0.45) !important;
     }
+    [data-testid="stFormSubmitButton"] > button,
+    [data-testid="stFormSubmitButton"] > button *,
+    [data-testid="stExpander"] [data-testid="stFormSubmitButton"] > button,
+    [data-testid="stExpander"] [data-testid="stFormSubmitButton"] > button *,
+    button[kind="secondaryFormSubmit"],
+    button[kind="secondaryFormSubmit"] *,
+    button[kind="primaryFormSubmit"],
+    button[kind="primaryFormSubmit"] * { color: #FFFFFF !important; }
 
-    /* ===== 入力フィールド ===== */
-    .stTextInput > div > div > input,
-    .stNumberInput > div > div > input,
-    .stSelectbox > div > div {
-        border-radius: 8px !important;
-        border: 1.5px solid #C8E6C9 !important;
-        background: #FAFFFE !important;
-        color: #1A2B1A !important;
-        transition: border-color 0.2s, box-shadow 0.2s !important;
-    }
-    .stTextInput > div > div > input:focus,
-    .stNumberInput > div > div > input:focus {
-        border-color: #43A047 !important;
-        box-shadow: 0 0 0 3px rgba(67,160,71,0.15) !important;
-    }
-
-    /* ===== タブ ===== */
-    .stTabs [data-baseweb="tab-list"] {
-        background: #FFFFFF !important;
-        border-radius: 12px !important;
-        padding: 4px !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
-        gap: 4px !important;
-    }
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 9px !important;
-        font-weight: 500 !important;
-        padding: 0.5rem 1.2rem !important;
-        color: #2A3A2A !important;
-        transition: all 0.2s ease !important;
-    }
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #2E7D32 0%, #43A047 100%) !important;
-        color: #FFFFFF !important;
-        box-shadow: 0 3px 10px rgba(46,125,50,0.3) !important;
-    }
-
-    /* ===== エクスパンダー ===== */
-    [data-testid="stExpander"] {
-        background: #FFFFFF !important;
-        border-radius: 12px !important;
-        border: 1px solid #E8F5E9 !important;
-        box-shadow: 0 2px 8px rgba(46,125,50,0.08) !important;
-        margin-bottom: 0.75rem !important;
-        overflow: hidden !important;
-        transition: box-shadow 0.25s ease !important;
-    }
-    [data-testid="stExpander"]:hover {
-        box-shadow: 0 6px 18px rgba(46,125,50,0.15) !important;
-    }
-
-    /* ===== コンテナ(border=True) ===== */
-    [data-testid="stVerticalBlockBorderWrapper"] > div {
-        background: #FFFFFF !important;
-        border-radius: 14px !important;
-        border: 2px solid #A5D6A7 !important;
-        border-left: 6px solid #43A047 !important;
-        box-shadow: 0 4px 16px rgba(46,125,50,0.13) !important;
-        margin-bottom: 1.1rem !important;
-        transition: box-shadow 0.25s ease, transform 0.25s ease, border-left-color 0.2s ease !important;
-    }
-    [data-testid="stVerticalBlockBorderWrapper"] > div:hover {
-        box-shadow: 0 10px 28px rgba(46,125,50,0.2) !important;
-        transform: translateY(-3px) !important;
-        border-left-color: #2E7D32 !important;
-    }
-
-    /* ===== Streamlit デフォルト metric ===== */
-    [data-testid="stMetric"] {
-        background: #FFFFFF !important;
-        border-radius: 14px !important;
-        padding: 1.2rem 1.4rem !important;
-        box-shadow: 0 3px 12px rgba(46,125,50,0.1) !important;
-        border: 1px solid #E8F5E9 !important;
-        animation: fadeSlideUp 0.5s ease forwards !important;
-        transition: box-shadow 0.25s, transform 0.25s !important;
-    }
-    [data-testid="stMetric"]:hover {
-        box-shadow: 0 8px 24px rgba(46,125,50,0.18) !important;
-        transform: translateY(-3px) !important;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 1.8rem !important;
-        font-weight: 700 !important;
-        color: #2E7D32 !important;
-    }
-    [data-testid="stMetricLabel"] {
-        font-weight: 500 !important;
-        color: #5C6B5C !important;
-    }
-
-    /* ===== データフレーム ===== */
-    [data-testid="stDataFrame"] {
-        border-radius: 12px !important;
-        overflow: hidden !important;
-        box-shadow: 0 2px 10px rgba(46,125,50,0.08) !important;
-        border: 1px solid #E8F5E9 !important;
-    }
-
-    /* ===== リンクボタン ===== */
+    /* ===== リンクボタン（モード共通） ===== */
     .stLinkButton > a {
         background: linear-gradient(135deg, #2E7D32 0%, #43A047 100%) !important;
         color: #FFFFFF !important;
@@ -269,22 +152,25 @@ def inject_css():
         border: none !important;
         font-weight: 600 !important;
         padding: 0.5rem 1.2rem !important;
-        box-shadow: 0 3px 10px rgba(46,125,50,0.25) !important;
+        box-shadow: 0 3px 10px rgba(46,125,50,0.30) !important;
         transition: all 0.25s ease !important;
     }
     .stLinkButton > a:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(46,125,50,0.38) !important;
+        box-shadow: 0 6px 20px rgba(46,125,50,0.45) !important;
     }
+    .stLinkButton > a, .stLinkButton > a * { color: #FFFFFF !important; }
 
-    /* ===== info / success / warning ===== */
-    [data-testid="stAlert"] {
-        border-radius: 12px !important;
-        border: none !important;
-        font-weight: 500 !important;
+    /* ===== タブ アクティブ（モード共通） ===== */
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #2E7D32 0%, #43A047 100%) !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 3px 10px rgba(46,125,50,0.3) !important;
     }
+    .stTabs [aria-selected="true"],
+    .stTabs [aria-selected="true"] * { color: #FFFFFF !important; }
 
-    /* ===== カスタムコンポーネント ===== */
+    /* ===== ヒーローヘッダー（モード共通） ===== */
     .hero-header {
         background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #43A047 100%);
         border-radius: 18px;
@@ -324,60 +210,21 @@ def inject_css():
     }
     .hero-subtitle {
         font-size: 0.95rem;
-        color: rgba(255,255,255,0.82) !important;
+        color: rgba(255,255,255,0.85) !important;
         margin: 0;
         display: flex;
         align-items: center;
         gap: 0.5rem;
     }
+    .hero-header, .hero-header * { color: white !important; }
 
-    .metric-cards-row {
-        display: flex;
-        gap: 1rem;
-        margin: 1.2rem 0;
-    }
-    .metric-card {
-        flex: 1;
-        background: #FFFFFF;
-        border-radius: 16px;
-        padding: 1.4rem 1.2rem;
-        box-shadow: 0 4px 16px rgba(46,125,50,0.1);
-        border: 1px solid #E8F5E9;
-        text-align: center;
-        animation: fadeSlideUp 0.5s ease both;
-        transition: transform 0.25s ease, box-shadow 0.25s ease;
-        cursor: default;
-    }
-    .metric-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(46,125,50,0.18);
-    }
-    .metric-card:nth-child(2) { animation-delay: 0.1s; }
-    .metric-card:nth-child(3) { animation-delay: 0.2s; }
-    .metric-card-icon {
-        margin-bottom: 0.6rem;
-        display: flex;
-        justify-content: center;
-    }
-    .metric-card-value {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #2E7D32;
-        line-height: 1.2;
-        margin-bottom: 0.3rem;
-    }
-    .metric-card-label {
-        font-size: 0.8rem;
-        color: #5C6B5C;
-        font-weight: 500;
-    }
-
+    /* ===== LIVE バッジ（モード共通） ===== */
     .live-badge {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: #FFEBEE;
-        color: #C62828;
+        background: rgba(198,40,40,0.15);
+        color: #EF5350;
         font-size: 0.78rem;
         font-weight: 700;
         padding: 3px 10px;
@@ -398,102 +245,335 @@ def inject_css():
         align-items: center;
         margin-bottom: 0.5rem;
     }
-    .live-monitor-title {
-        font-size: 1.3rem;
+
+    /* ===== カスタムメトリクスカード 構造（モード共通） ===== */
+    .metric-card {
+        flex: 1;
+        border-radius: 16px;
+        padding: 1.4rem 1.2rem;
+        text-align: center;
+        animation: fadeSlideUp 0.5s ease both;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        cursor: default;
+    }
+    .metric-card:hover { transform: translateY(-5px); }
+    .metric-card:nth-child(2) { animation-delay: 0.1s; }
+    .metric-card:nth-child(3) { animation-delay: 0.2s; }
+    .metric-card-icon {
+        margin-bottom: 0.6rem;
+        display: flex;
+        justify-content: center;
+    }
+    .metric-card-value {
+        font-size: 1.6rem;
         font-weight: 700;
-        color: #1A2B1A;
-        margin: 0;
+        line-height: 1.2;
+        margin-bottom: 0.3rem;
+    }
+    .metric-card-label {
+        font-size: 0.8rem;
+        font-weight: 500;
     }
 
+    /* ===== alert ===== */
+    [data-testid="stAlert"] {
+        border-radius: 12px !important;
+        border: none !important;
+        font-weight: 500 !important;
+    }
+
+    /* ===== spinner ===== */
+    .stSpinner > div { border-top-color: #43A047 !important; }
+
+    /* ===== section-divider（ライト） ===== */
     .section-divider {
         border: none;
-        border-top: 2px solid #E8F5E9;
         margin: 1.5rem 0;
     }
 
-    .event-card-url {
-        font-size: 0.8rem;
-        color: #7B9E7B;
-        word-break: break-all;
-        background: #F1F8F1;
-        padding: 0.4rem 0.7rem;
-        border-radius: 7px;
-        font-family: monospace;
+    /* ============================================================
+       ライトモード
+    ============================================================ */
+    @media (prefers-color-scheme: light) {
+        html, body, .stApp,
+        [data-testid="stAppViewContainer"],
+        [data-testid="stMain"],
+        [data-testid="stMain"] > div,
+        .main, .main > div {
+            background: linear-gradient(160deg, #EFF6EF 0%, #F5F9F5 50%, #EEF4EE 100%) !important;
+        }
+        [data-testid="stHeader"] {
+            background: rgba(239,246,239,0.92) !important;
+            backdrop-filter: blur(8px) !important;
+            border-bottom: 1px solid #C8E6C9 !important;
+        }
+        [data-testid="stSidebar"] {
+            background: #FFFFFF !important;
+            border-right: 3px solid #C8E6C9 !important;
+            box-shadow: 2px 0 12px rgba(46,125,50,0.08) !important;
+        }
+        .stTabs [data-baseweb="tab-list"] {
+            background: #FFFFFF !important;
+            border-radius: 12px !important;
+            padding: 4px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+            gap: 4px !important;
+        }
+        .stTabs [data-baseweb="tab"] {
+            border-radius: 9px !important;
+            font-weight: 500 !important;
+            padding: 0.5rem 1.2rem !important;
+            color: #2A3A2A !important;
+            transition: all 0.2s ease !important;
+        }
+        [data-testid="stExpander"] {
+            background: #FFFFFF !important;
+            border-radius: 12px !important;
+            border: 1px solid #E8F5E9 !important;
+            box-shadow: 0 2px 8px rgba(46,125,50,0.08) !important;
+            margin-bottom: 0.75rem !important;
+            overflow: hidden !important;
+            transition: box-shadow 0.25s ease !important;
+        }
+        [data-testid="stExpander"]:hover {
+            box-shadow: 0 6px 18px rgba(46,125,50,0.15) !important;
+        }
+        [data-testid="stVerticalBlockBorderWrapper"] > div {
+            background: #FFFFFF !important;
+            border-radius: 14px !important;
+            border: 2px solid #A5D6A7 !important;
+            border-left: 6px solid #43A047 !important;
+            box-shadow: 0 4px 16px rgba(46,125,50,0.13) !important;
+            margin-bottom: 1.1rem !important;
+            transition: box-shadow 0.25s ease, transform 0.25s ease !important;
+        }
+        [data-testid="stVerticalBlockBorderWrapper"] > div:hover {
+            box-shadow: 0 10px 28px rgba(46,125,50,0.2) !important;
+            transform: translateY(-3px) !important;
+        }
+        [data-testid="stMetric"] {
+            background: #FFFFFF !important;
+            border-radius: 14px !important;
+            padding: 1.2rem 1.4rem !important;
+            box-shadow: 0 3px 12px rgba(46,125,50,0.1) !important;
+            border: 1px solid #E8F5E9 !important;
+            animation: fadeSlideUp 0.5s ease forwards !important;
+            transition: box-shadow 0.25s, transform 0.25s !important;
+        }
+        [data-testid="stMetric"]:hover {
+            box-shadow: 0 8px 24px rgba(46,125,50,0.18) !important;
+            transform: translateY(-3px) !important;
+        }
+        [data-testid="stMetricValue"] { font-size: 1.8rem !important; font-weight: 700 !important; color: #2E7D32 !important; }
+        [data-testid="stMetricLabel"] { font-weight: 500 !important; color: #5C6B5C !important; }
+        [data-testid="stMetricLabel"] p,
+        [data-testid="stMetricLabel"] span { color: #5C6B5C !important; }
+        [data-testid="stDataFrame"] {
+            border-radius: 12px !important;
+            overflow: hidden !important;
+            box-shadow: 0 2px 10px rgba(46,125,50,0.08) !important;
+            border: 1px solid #E8F5E9 !important;
+        }
+        .stTextInput > div > div > input,
+        .stNumberInput > div > div > input,
+        .stSelectbox > div > div {
+            border-radius: 8px !important;
+            border: 1.5px solid #C8E6C9 !important;
+            background: #FAFFFE !important;
+            color: #1A2B1A !important;
+            transition: border-color 0.2s, box-shadow 0.2s !important;
+        }
+        .stTextInput > div > div > input:focus,
+        .stNumberInput > div > div > input:focus {
+            border-color: #43A047 !important;
+            box-shadow: 0 0 0 3px rgba(67,160,71,0.15) !important;
+        }
+        /* テキスト色 */
+        .stApp { color: #1A2B1A !important; }
+        h1, h2, h3, h4, h5, h6 { color: #1A2B1A !important; }
+        [data-testid="stMarkdownContainer"] p,
+        [data-testid="stMarkdownContainer"] li,
+        [data-testid="stMarkdownContainer"] strong,
+        [data-testid="stMarkdownContainer"] em,
+        [data-testid="stMarkdownContainer"] span { color: #1A2B1A !important; }
+        [data-testid="stSidebar"],
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] div { color: #1A2B1A !important; }
+        .stTextInput input, .stNumberInput input, .stTextArea textarea { color: #1A2B1A !important; }
+        .stTextInput label, .stNumberInput label, .stSelectbox label,
+        .stDateInput label, .stRadio label, .stRadio p { color: #2A3A2A !important; font-weight: 500 !important; }
+        .stSelectbox [data-baseweb="select"] div,
+        .stSelectbox [data-baseweb="select"] span,
+        .stSelectbox [data-baseweb="select"] input { color: #1A2B1A !important; }
+        [data-testid="stRadio"] label,
+        [data-testid="stRadio"] p,
+        [data-testid="stRadio"] span { color: #1A2B1A !important; }
+        [data-testid="stExpander"] summary p,
+        [data-testid="stExpander"] [data-testid="stMarkdownContainer"] p { color: #1A2B1A !important; }
+        [data-testid="stCaptionContainer"],
+        [data-testid="stCaptionContainer"] p { color: #4A5A4A !important; }
+        [data-testid="stTable"] th,
+        [data-testid="stTable"] td,
+        [data-testid="stTable"] p { color: #1A2B1A !important; }
+        .live-monitor-title { color: #1A2B1A; }
+        .metric-card {
+            background: #FFFFFF;
+            box-shadow: 0 4px 16px rgba(46,125,50,0.10);
+            border: 1px solid #E8F5E9;
+        }
+        .metric-card:hover { box-shadow: 0 10px 30px rgba(46,125,50,0.18); }
+        .metric-card-value { color: #2E7D32; }
+        .metric-card-label { color: #5C6B5C; }
+        .section-divider { border-top: 2px solid #E8F5E9; }
+        .event-card-url {
+            color: #7B9E7B;
+            background: #F1F8F1;
+        }
     }
 
-    /* ===== テキスト色（ダークモード対応） ===== */
-    .stApp { color: #1A2B1A !important; }
-    h1, h2, h3, h4, h5, h6 { color: #1A2B1A !important; }
-
-    [data-testid="stMarkdownContainer"] p,
-    [data-testid="stMarkdownContainer"] li,
-    [data-testid="stMarkdownContainer"] strong,
-    [data-testid="stMarkdownContainer"] em,
-    [data-testid="stMarkdownContainer"] span {
-        color: #1A2B1A !important;
+    /* ============================================================
+       ダークモード
+    ============================================================ */
+    @media (prefers-color-scheme: dark) {
+        html, body, .stApp,
+        [data-testid="stAppViewContainer"],
+        [data-testid="stMain"],
+        [data-testid="stMain"] > div,
+        .main, .main > div {
+            background: linear-gradient(160deg, #0C1A0C 0%, #111D11 50%, #0E1B0E 100%) !important;
+        }
+        [data-testid="stHeader"] {
+            background: rgba(12,26,12,0.92) !important;
+            backdrop-filter: blur(8px) !important;
+            border-bottom: 1px solid #2A4A2A !important;
+        }
+        [data-testid="stSidebar"] {
+            background: #111E11 !important;
+            border-right: 3px solid #2A4A2A !important;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.3) !important;
+        }
+        .stTabs [data-baseweb="tab-list"] {
+            background: #1A2E1A !important;
+            border-radius: 12px !important;
+            padding: 4px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+            gap: 4px !important;
+        }
+        .stTabs [data-baseweb="tab"] {
+            border-radius: 9px !important;
+            font-weight: 500 !important;
+            padding: 0.5rem 1.2rem !important;
+            color: #A5C8A5 !important;
+            transition: all 0.2s ease !important;
+        }
+        [data-testid="stExpander"] {
+            background: #1A2E1A !important;
+            border-radius: 12px !important;
+            border: 1px solid #2A4A2A !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
+            margin-bottom: 0.75rem !important;
+            overflow: hidden !important;
+            transition: box-shadow 0.25s ease !important;
+        }
+        [data-testid="stExpander"]:hover {
+            box-shadow: 0 6px 18px rgba(0,0,0,0.4) !important;
+        }
+        [data-testid="stVerticalBlockBorderWrapper"] > div {
+            background: #1A2E1A !important;
+            border-radius: 14px !important;
+            border: 2px solid #2A4A2A !important;
+            border-left: 6px solid #43A047 !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+            margin-bottom: 1.1rem !important;
+            transition: box-shadow 0.25s ease, transform 0.25s ease !important;
+        }
+        [data-testid="stVerticalBlockBorderWrapper"] > div:hover {
+            box-shadow: 0 10px 28px rgba(0,0,0,0.45) !important;
+            transform: translateY(-3px) !important;
+        }
+        [data-testid="stMetric"] {
+            background: #1A2E1A !important;
+            border-radius: 14px !important;
+            padding: 1.2rem 1.4rem !important;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.3) !important;
+            border: 1px solid #2A4A2A !important;
+            animation: fadeSlideUp 0.5s ease forwards !important;
+            transition: box-shadow 0.25s, transform 0.25s !important;
+        }
+        [data-testid="stMetric"]:hover {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.45) !important;
+            transform: translateY(-3px) !important;
+        }
+        [data-testid="stMetricValue"] { font-size: 1.8rem !important; font-weight: 700 !important; color: #66BB6A !important; }
+        [data-testid="stMetricLabel"] { font-weight: 500 !important; color: #8BAF8B !important; }
+        [data-testid="stMetricLabel"] p,
+        [data-testid="stMetricLabel"] span { color: #8BAF8B !important; }
+        [data-testid="stDataFrame"] {
+            border-radius: 12px !important;
+            overflow: hidden !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
+            border: 1px solid #2A4A2A !important;
+        }
+        .stTextInput > div > div > input,
+        .stNumberInput > div > div > input,
+        .stSelectbox > div > div {
+            border-radius: 8px !important;
+            border: 1.5px solid #2A4A2A !important;
+            background: #1C341C !important;
+            color: #C8E6C8 !important;
+            transition: border-color 0.2s, box-shadow 0.2s !important;
+        }
+        .stTextInput > div > div > input:focus,
+        .stNumberInput > div > div > input:focus {
+            border-color: #66BB6A !important;
+            box-shadow: 0 0 0 3px rgba(102,187,106,0.2) !important;
+        }
+        /* テキスト色 */
+        .stApp { color: #C8E6C8 !important; }
+        h1, h2, h3, h4, h5, h6 { color: #C8E6C8 !important; }
+        [data-testid="stMarkdownContainer"] p,
+        [data-testid="stMarkdownContainer"] li,
+        [data-testid="stMarkdownContainer"] strong,
+        [data-testid="stMarkdownContainer"] em,
+        [data-testid="stMarkdownContainer"] span { color: #C8E6C8 !important; }
+        [data-testid="stSidebar"],
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] div { color: #C8E6C8 !important; }
+        .stTextInput input, .stNumberInput input, .stTextArea textarea { color: #C8E6C8 !important; }
+        .stTextInput label, .stNumberInput label, .stSelectbox label,
+        .stDateInput label, .stRadio label, .stRadio p { color: #A5C8A5 !important; font-weight: 500 !important; }
+        .stSelectbox [data-baseweb="select"] div,
+        .stSelectbox [data-baseweb="select"] span,
+        .stSelectbox [data-baseweb="select"] input { color: #C8E6C8 !important; }
+        [data-testid="stRadio"] label,
+        [data-testid="stRadio"] p,
+        [data-testid="stRadio"] span { color: #C8E6C8 !important; }
+        [data-testid="stExpander"] summary p,
+        [data-testid="stExpander"] [data-testid="stMarkdownContainer"] p { color: #C8E6C8 !important; }
+        [data-testid="stCaptionContainer"],
+        [data-testid="stCaptionContainer"] p { color: #8BAF8B !important; }
+        [data-testid="stTable"] th,
+        [data-testid="stTable"] td,
+        [data-testid="stTable"] p { color: #C8E6C8 !important; }
+        .live-monitor-title { color: #C8E6C8; }
+        .metric-card {
+            background: #1A2E1A;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            border: 1px solid #2A4A2A;
+        }
+        .metric-card:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
+        .metric-card-value { color: #66BB6A; }
+        .metric-card-label { color: #8BAF8B; }
+        .section-divider { border-top: 2px solid #2A4A2A; }
+        .event-card-url {
+            color: #8BAF8B;
+            background: #1C341C;
+        }
     }
-    [data-testid="stSidebar"],
-    [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] div,
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
-        color: #1A2B1A !important;
-    }
-    .stTextInput input, .stNumberInput input, .stTextArea textarea {
-        color: #1A2B1A !important;
-    }
-    .stTextInput label, .stNumberInput label, .stSelectbox label,
-    .stDateInput label, .stRadio label, .stRadio p {
-        color: #2A3A2A !important;
-        font-weight: 500 !important;
-    }
-    .stSelectbox [data-baseweb="select"] div,
-    .stSelectbox [data-baseweb="select"] span,
-    .stSelectbox [data-baseweb="select"] input { color: #1A2B1A !important; }
-    [data-testid="stRadio"] label,
-    [data-testid="stRadio"] p,
-    [data-testid="stRadio"] span { color: #1A2B1A !important; }
-    [data-testid="stExpander"] summary p,
-    [data-testid="stExpander"] [data-testid="stMarkdownContainer"] p { color: #1A2B1A !important; }
-    [data-testid="stCaptionContainer"],
-    [data-testid="stCaptionContainer"] p { color: #4A5A4A !important; }
-    [data-testid="stTable"] th,
-    [data-testid="stTable"] td,
-    [data-testid="stTable"] p { color: #1A2B1A !important; }
-    [data-testid="stMetricLabel"] p,
-    [data-testid="stMetricLabel"] span { color: #4A5A4A !important; }
-
-    /* spinner */
-    .stSpinner > div { border-top-color: #43A047 !important; }
-
-    /* ===== ダーク背景エリアは白文字（最後に記述して優先） ===== */
-    .hero-header, .hero-header p, .hero-header h1, .hero-header h2,
-    .hero-header h3, .hero-header span, .hero-header div {
-        color: white !important;
-    }
-    .stButton > button, .stButton > button span, .stButton > button p,
-    .stButton > button * { color: #FFFFFF !important; }
-    [data-testid="stFormSubmitButton"] > button,
-    [data-testid="stFormSubmitButton"] > button span,
-    [data-testid="stFormSubmitButton"] > button p,
-    [data-testid="stFormSubmitButton"] > button * { color: #FFFFFF !important; }
-    /* エクスパンダー内ボタン: 詳細度を上げて確実に上書き */
-    [data-testid="stExpander"] [data-testid="stFormSubmitButton"] > button,
-    [data-testid="stExpander"] [data-testid="stFormSubmitButton"] > button span,
-    [data-testid="stExpander"] [data-testid="stFormSubmitButton"] > button p,
-    [data-testid="stExpander"] [data-testid="stFormSubmitButton"] > button * { color: #FFFFFF !important; }
-    [data-testid="stExpander"] .stButton > button,
-    [data-testid="stExpander"] .stButton > button * { color: #FFFFFF !important; }
-    /* フォーム内ボタン全般（kind 属性ベース） */
-    button[kind="secondaryFormSubmit"],
-    button[kind="secondaryFormSubmit"] *,
-    button[kind="primaryFormSubmit"],
-    button[kind="primaryFormSubmit"] * { color: #FFFFFF !important; }
-    .stLinkButton > a, .stLinkButton > a span, .stLinkButton > a p { color: #FFFFFF !important; }
-    .stTabs [aria-selected="true"],
-    .stTabs [aria-selected="true"] span,
-    .stTabs [aria-selected="true"] p { color: #FFFFFF !important; }
     </style>
     """, unsafe_allow_html=True)
 
