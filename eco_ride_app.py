@@ -462,7 +462,13 @@ def inject_css():
         .stLinkButton > a * { color: #FFFFFF !important; }
         .stTabs [aria-selected="true"],
         .stTabs [aria-selected="true"] * { color: #FFFFFF !important; }
-        .hero-header, .hero-header * { color: #FFFFFF !important; }
+        /* hero-header: stMarkdownContainer と組み合わせて詳細度を (0,2,1) に */
+        .hero-header, .hero-header *,
+        [data-testid="stMarkdownContainer"] .hero-header,
+        [data-testid="stMarkdownContainer"] .hero-header * { color: #FFFFFF !important; }
+        /* イベントカード内のイベント名（h3）を白文字に */
+        [data-testid="stVerticalBlockBorderWrapper"] h3,
+        [data-testid="stVerticalBlockBorderWrapper"] [data-testid="stMarkdownContainer"] h3 { color: #FFFFFF !important; }
     }
 
     /* ============================================================
