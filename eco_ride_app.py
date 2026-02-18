@@ -496,16 +496,16 @@ def render_hero_header(icon_svg: str, title: str, subtitle: str) -> None:
 
 
 def render_metric_cards(cards: list[dict]) -> None:
-    items_html = ""
-    for c in cards:
-        items_html += f"""
-        <div class="metric-card">
-            <div class="metric-card-icon">{c['icon']}</div>
-            <div class="metric-card-value">{c['value']}</div>
-            <div class="metric-card-label">{c['label']}</div>
-        </div>
-        """
-    st.markdown(f'<div class="metric-cards-row">{items_html}</div>', unsafe_allow_html=True)
+    cols = st.columns(len(cards))
+    for col, c in zip(cols, cards):
+        with col:
+            st.markdown(f"""
+<div class="metric-card">
+<div class="metric-card-icon">{c['icon']}</div>
+<div class="metric-card-value">{c['value']}</div>
+<div class="metric-card-label">{c['label']}</div>
+</div>
+""", unsafe_allow_html=True)
 
 
 # --- 関数群 ---
