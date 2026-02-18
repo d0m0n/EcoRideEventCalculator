@@ -419,8 +419,96 @@ def inject_css():
         font-family: monospace !important;
     }
 
-    /* Streamlit デフォルト h1-h3 の色調整 */
-    h1, h2, h3 { color: #1A2B1A !important; }
+    /* ===== テキスト色（ダークモード対応） ===== */
+
+    /* アプリ全体のデフォルトテキスト色 */
+    .stApp { color: #1A2B1A !important; }
+
+    /* 見出し */
+    h1, h2, h3, h4, h5, h6 { color: #1A2B1A !important; }
+
+    /* マークダウン本文 */
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] li,
+    [data-testid="stMarkdownContainer"] strong,
+    [data-testid="stMarkdownContainer"] em,
+    [data-testid="stMarkdownContainer"] span {
+        color: #1A2B1A !important;
+    }
+
+    /* サイドバー全テキスト */
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] div,
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
+        color: #1A2B1A !important;
+    }
+
+    /* 入力フィールドのテキスト */
+    .stTextInput input,
+    .stNumberInput input,
+    .stTextArea textarea {
+        color: #1A2B1A !important;
+    }
+
+    /* 入力・セレクトのラベル */
+    .stTextInput label,
+    .stNumberInput label,
+    .stSelectbox label,
+    .stDateInput label,
+    .stRadio label,
+    .stRadio p,
+    .stNumberInput label {
+        color: #2A3A2A !important;
+        font-weight: 500 !important;
+    }
+
+    /* セレクトボックスの選択済みテキスト */
+    .stSelectbox [data-baseweb="select"] div,
+    .stSelectbox [data-baseweb="select"] span,
+    .stSelectbox [data-baseweb="select"] input {
+        color: #1A2B1A !important;
+    }
+
+    /* ラジオボタン選択肢テキスト */
+    [data-testid="stRadio"] label,
+    [data-testid="stRadio"] p,
+    [data-testid="stRadio"] span {
+        color: #1A2B1A !important;
+    }
+
+    /* エクスパンダーのタイトル・本文 */
+    [data-testid="stExpander"] summary p,
+    [data-testid="stExpander"] [data-testid="stMarkdownContainer"],
+    [data-testid="stExpander"] [data-testid="stMarkdownContainer"] p {
+        color: #1A2B1A !important;
+    }
+
+    /* タブの非アクティブテキスト */
+    .stTabs [data-baseweb="tab"] {
+        color: #2A3A2A !important;
+    }
+
+    /* キャプション */
+    [data-testid="stCaptionContainer"],
+    [data-testid="stCaptionContainer"] p {
+        color: #4A5A4A !important;
+    }
+
+    /* テーブル */
+    [data-testid="stTable"] th,
+    [data-testid="stTable"] td,
+    [data-testid="stTable"] p {
+        color: #1A2B1A !important;
+    }
+
+    /* Streamlit デフォルト metric ラベル（既存より明確に） */
+    [data-testid="stMetricLabel"] p,
+    [data-testid="stMetricLabel"] span {
+        color: #4A5A4A !important;
+    }
 
     /* spinner */
     .stSpinner > div { border-top-color: #43A047 !important; }
