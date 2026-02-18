@@ -59,6 +59,18 @@ def inject_css():
     /* ===== グローバル ===== */
     * { font-family: 'Noto Sans JP', sans-serif !important; box-sizing: border-box; }
 
+    /* Material Icons フォントを保護（arrow_right / arrow_down 文字化け防止） */
+    .material-icons,
+    .material-icons-round,
+    .material-icons-outlined,
+    .material-icons-sharp,
+    .material-symbols-rounded,
+    .material-symbols-outlined,
+    [class*="material-icons"],
+    [class*="material-symbols"] {
+        font-family: 'Material Icons Round', 'Material Icons', 'Material Symbols Rounded', 'Material Symbols Outlined' !important;
+    }
+
     /* ダークモード含め背景を強制上書き */
     html,
     body,
