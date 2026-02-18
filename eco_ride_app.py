@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.express as px
 import math
@@ -27,7 +28,11 @@ MAX_CAPACITY = {
 }
 
 # ページ設定
-st.set_page_config(page_title="イベント相乗りCO2削減シミュレーター", layout="wide")
+st.set_page_config(
+    page_title="イベント相乗りCO2削減シミュレーター",
+    page_icon="static/favicon.ico",
+    layout="wide",
+)
 
 # --- SVG アイコン定義（Feather Icons ベース） ---
 def _icon(inner, size=28, color="currentColor"):
@@ -65,6 +70,34 @@ _P_PARKING = (
 
 
 # --- UI ヘルパー関数 ---
+
+def inject_head_icons():
+    """Apple Touch / Android / PNG favicon の <link> タグを <head> に注入する。
+    Streamlit の静的配信 (/app/static/) を利用。"""
+    components.html("""
+    <script>
+    (function() {
+        const head = window.top.document.head;
+        const BASE = '/app/static';
+        const tags = [
+            {rel: 'icon',             type: 'image/png', sizes: '16x16',  href: BASE + '/favicon-16x16.png'},
+            {rel: 'icon',             type: 'image/png', sizes: '32x32',  href: BASE + '/favicon-32x32.png'},
+            {rel: 'icon',             type: 'image/png', sizes: '48x48',  href: BASE + '/favicon-48x48.png'},
+            {rel: 'apple-touch-icon',                                      href: BASE + '/apple-touch-icon.png'},
+            {rel: 'apple-touch-icon',                    sizes: '152x152', href: BASE + '/apple-touch-icon-152x152.png'},
+            {rel: 'apple-touch-icon',                    sizes: '167x167', href: BASE + '/apple-touch-icon-167x167.png'},
+            {rel: 'apple-touch-icon',                    sizes: '180x180', href: BASE + '/apple-touch-icon-180x180.png'},
+            {rel: 'manifest',                                              href: BASE + '/site.webmanifest'},
+        ];
+        tags.forEach(function(attrs) {
+            const link = document.createElement('link');
+            Object.keys(attrs).forEach(function(k) { link.setAttribute(k, attrs[k]); });
+            head.appendChild(link);
+        });
+    })();
+    </script>
+    """, height=0)
+
 
 def inject_css():
     st.markdown("""
@@ -783,6 +816,7 @@ def show_live_monitor(current_event_id):
 # --- メイン処理 ---
 
 inject_css()
+inject_head_icons()
 
 query_params = st.query_params
 current_event_id = query_params.get("event_id", None)
