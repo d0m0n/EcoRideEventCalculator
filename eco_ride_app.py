@@ -472,9 +472,12 @@ def inject_css():
     .hero-header h3, .hero-header span, .hero-header div {
         color: white !important;
     }
-    .stButton > button, .stButton > button span, .stButton > button p { color: #FFFFFF !important; }
+    .stButton > button, .stButton > button span, .stButton > button p,
+    .stButton > button * { color: #FFFFFF !important; }
     [data-testid="stFormSubmitButton"] > button,
-    [data-testid="stFormSubmitButton"] > button span { color: #FFFFFF !important; }
+    [data-testid="stFormSubmitButton"] > button span,
+    [data-testid="stFormSubmitButton"] > button p,
+    [data-testid="stFormSubmitButton"] > button * { color: #FFFFFF !important; }
     .stLinkButton > a, .stLinkButton > a span, .stLinkButton > a p { color: #FFFFFF !important; }
     .stTabs [aria-selected="true"],
     .stTabs [aria-selected="true"] span,
