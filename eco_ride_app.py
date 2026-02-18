@@ -315,7 +315,7 @@ def inject_css():
     }
     .hero-subtitle {
         font-size: 1rem;
-        color: rgba(255,255,255,0.82);
+        color: rgba(255,255,255,0.82) !important;
         margin: 0;
         font-weight: 400;
     }
@@ -533,6 +533,47 @@ def inject_css():
 
     /* spinner */
     .stSpinner > div { border-top-color: #43A047 !important; }
+
+    /* ===== ダーク背景エリアは白文字（最後に記述して優先） ===== */
+
+    /* ヒーローヘッダー内のすべてのテキスト */
+    .hero-header,
+    .hero-header p,
+    .hero-header h1,
+    .hero-header h2,
+    .hero-header h3,
+    .hero-header span,
+    .hero-header div {
+        color: white !important;
+    }
+
+    /* 通常ボタン */
+    .stButton > button,
+    .stButton > button span,
+    .stButton > button p {
+        color: #FFFFFF !important;
+    }
+
+    /* フォーム送信ボタン */
+    [data-testid="stFormSubmitButton"] > button,
+    [data-testid="stFormSubmitButton"] > button span,
+    [data-testid="stFormSubmitButton"] > button p {
+        color: #FFFFFF !important;
+    }
+
+    /* リンクボタン */
+    .stLinkButton > a,
+    .stLinkButton > a span,
+    .stLinkButton > a p {
+        color: #FFFFFF !important;
+    }
+
+    /* アクティブタブ */
+    .stTabs [aria-selected="true"],
+    .stTabs [aria-selected="true"] span,
+    .stTabs [aria-selected="true"] p {
+        color: #FFFFFF !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
