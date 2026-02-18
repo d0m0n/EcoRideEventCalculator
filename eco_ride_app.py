@@ -204,13 +204,16 @@ def inject_css():
     [data-testid="stVerticalBlockBorderWrapper"] > div {
         background: #FFFFFF !important;
         border-radius: 14px !important;
-        border: 1px solid #E8F5E9 !important;
-        box-shadow: 0 3px 12px rgba(46,125,50,0.09) !important;
-        transition: box-shadow 0.25s ease, transform 0.25s ease !important;
+        border: 2px solid #A5D6A7 !important;
+        border-left: 6px solid #43A047 !important;
+        box-shadow: 0 4px 16px rgba(46,125,50,0.13) !important;
+        margin-bottom: 1.1rem !important;
+        transition: box-shadow 0.25s ease, transform 0.25s ease, border-left-color 0.2s ease !important;
     }
     [data-testid="stVerticalBlockBorderWrapper"] > div:hover {
-        box-shadow: 0 8px 24px rgba(46,125,50,0.16) !important;
-        transform: translateY(-2px) !important;
+        box-shadow: 0 10px 28px rgba(46,125,50,0.2) !important;
+        transform: translateY(-3px) !important;
+        border-left-color: #2E7D32 !important;
     }
 
     /* ===== Streamlit デフォルト metric ===== */
