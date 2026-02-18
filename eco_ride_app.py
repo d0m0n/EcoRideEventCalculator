@@ -478,6 +478,18 @@ def inject_css():
     [data-testid="stFormSubmitButton"] > button span,
     [data-testid="stFormSubmitButton"] > button p,
     [data-testid="stFormSubmitButton"] > button * { color: #FFFFFF !important; }
+    /* エクスパンダー内ボタン: 詳細度を上げて確実に上書き */
+    [data-testid="stExpander"] [data-testid="stFormSubmitButton"] > button,
+    [data-testid="stExpander"] [data-testid="stFormSubmitButton"] > button span,
+    [data-testid="stExpander"] [data-testid="stFormSubmitButton"] > button p,
+    [data-testid="stExpander"] [data-testid="stFormSubmitButton"] > button * { color: #FFFFFF !important; }
+    [data-testid="stExpander"] .stButton > button,
+    [data-testid="stExpander"] .stButton > button * { color: #FFFFFF !important; }
+    /* フォーム内ボタン全般（kind 属性ベース） */
+    button[kind="secondaryFormSubmit"],
+    button[kind="secondaryFormSubmit"] *,
+    button[kind="primaryFormSubmit"],
+    button[kind="primaryFormSubmit"] * { color: #FFFFFF !important; }
     .stLinkButton > a, .stLinkButton > a span, .stLinkButton > a p { color: #FFFFFF !important; }
     .stTabs [aria-selected="true"],
     .stTabs [aria-selected="true"] span,
