@@ -955,11 +955,12 @@ else:
 
                 reduction_kg = (total_solo - total_share) / 1000
                 occupancy_rate = total_people / actual_cars if actual_cars > 0 else 0
+                cedar_trees = reduction_kg / 14
 
                 render_metric_cards([
-                    {"icon": _icon(_P_LEAF,    36, "#2E7D32"), "value": f"{reduction_kg:.2f} kg", "label": "CO2削減量"},
-                    {"icon": _icon(_P_CAR,     36, "#2E7D32"), "value": f"{occupancy_rate:.2f} 人/台", "label": "相乗り率"},
-                    {"icon": _icon(_P_PARKING, 36, "#2E7D32"), "value": f"{actual_cars} 台",       "label": "現在の実稼働台数"},
+                    {"icon": _icon(_P_LEAF,  36, "#2E7D32"), "value": f"{reduction_kg:.2f} kg", "label": "CO2削減量"},
+                    {"icon": _icon(_P_CAR,   36, "#2E7D32"), "value": f"{occupancy_rate:.2f} 人/台", "label": "相乗り率"},
+                    {"icon": _icon(_P_TREE,  36, "#2E7D32"), "value": f"約 {cedar_trees:.1f} 本",    "label": "杉の木の年間吸収量相当"},
                 ])
 
                 chart_data = pd.DataFrame({
