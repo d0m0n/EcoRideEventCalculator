@@ -836,34 +836,42 @@ if not current_event_id:
             for index, row in events_df[::-1].iterrows():
                 base_url = "https://ecorideeventcalculator-2vhvzkr7oenknbuegaremc.streamlit.app/"
                 invite_url = f"{base_url}?event_id={row['event_id']}"
-                st.markdown(f"""
-                <div class="event-card">
-                    <p class="event-card-name">📍 {row['event_name']}</p>
-                    <p class="event-card-meta">📅 {row['event_date']}　|　🏟 {row['location_name']}</p>
-                    <div class="event-card-url">{invite_url}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                c1, c2 = st.columns([3, 1])
-                with c2:
-                    st.link_button("🚀 参加者画面へ", invite_url)
-                with st.expander("⚙️ 編集・削除"):
-                    with st.form(f"edit_{row['event_id']}"):
-                        n_name = st.text_input("名", value=row['event_name'])
-                        n_loc = st.text_input("場", value=row['location_name'])
-                        n_addr = st.text_input("住", value=row['location_address'])
-                        n_date = st.text_input("日", value=row['event_date'])
-                        c_up, c_del = st.columns(2)
-                        if c_up.form_submit_button("更新"):
-                            events_df.at[index, 'event_name'] = n_name
-                            events_df.at[index, 'location_name'] = n_loc
-                            events_df.at[index, 'location_address'] = n_addr
-                            events_df.at[index, 'event_date'] = n_date
-                            update_sheet_data("events", events_df)
-                            st.rerun()
-                        if c_del.form_submit_button("削除", type="primary"):
-                            events_df = events_df.drop(index)
-                            update_sheet_data("events", events_df)
-                            st.rerun()
+                with st.container(border=True):
+                    # ── イベント情報 + 参加者画面へボタン ──
+                    col_info, col_btn = st.columns([4, 1])
+                    with col_info:
+                        st.markdown(f"### 📍 {row['event_name']}")
+                        st.caption(f"📅 {row['event_date']}　|　🏟 {row['location_name']}")
+                        st.markdown(
+                            f'<div class="event-card-url">{invite_url}</div>',
+                            unsafe_allow_html=True,
+                        )
+                    with col_btn:
+                        st.link_button("🚀 参加者画面へ", invite_url, use_container_width=True)
+
+                    # ── 編集・削除フォーム ──
+                    with st.expander("⚙️ 編集・削除"):
+                        with st.form(f"edit_{row['event_id']}"):
+                            col_l, col_r = st.columns(2)
+                            with col_l:
+                                n_name = st.text_input("イベント名", value=row['event_name'])
+                                n_loc  = st.text_input("開催場所名", value=row['location_name'])
+                            with col_r:
+                                n_addr = st.text_input("開催場所の住所", value=row['location_address'])
+                                n_date = st.text_input("開催日", value=row['event_date'])
+                            st.markdown("---")
+                            c_up, c_del = st.columns(2)
+                            if c_up.form_submit_button("💾 更新する", use_container_width=True):
+                                events_df.at[index, 'event_name'] = n_name
+                                events_df.at[index, 'location_name'] = n_loc
+                                events_df.at[index, 'location_address'] = n_addr
+                                events_df.at[index, 'event_date'] = n_date
+                                update_sheet_data("events", events_df)
+                                st.rerun()
+                            if c_del.form_submit_button("🗑️ 削除する", type="primary", use_container_width=True):
+                                events_df = events_df.drop(index)
+                                update_sheet_data("events", events_df)
+                                st.rerun()
         else:
             st.info("イベントなし")
 
