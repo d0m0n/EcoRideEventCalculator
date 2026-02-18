@@ -587,7 +587,7 @@ def inject_css():
         .section-divider { border-top: 2px solid #2A4A2A; }
         .event-card-url {
             color: #8BAF8B;
-            background: rgba(0, 0, 0, 0.25);
+            background: #1A2E1A;
         }
     }
     </style>
