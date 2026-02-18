@@ -447,6 +447,22 @@ def inject_css():
             color: #7B9E7B;
             background: #F1F8F1;
         }
+        /* ボタン・リンク・タブの白文字（テキスト色ルールより後に記述して優先） */
+        .stButton > button,
+        .stButton > button * { color: #FFFFFF !important; }
+        [data-testid="stFormSubmitButton"] > button,
+        [data-testid="stFormSubmitButton"] > button *,
+        [data-testid="stExpander"] [data-testid="stFormSubmitButton"] > button,
+        [data-testid="stExpander"] [data-testid="stFormSubmitButton"] > button *,
+        button[kind="secondaryFormSubmit"],
+        button[kind="secondaryFormSubmit"] *,
+        button[kind="primaryFormSubmit"],
+        button[kind="primaryFormSubmit"] * { color: #FFFFFF !important; }
+        .stLinkButton > a,
+        .stLinkButton > a * { color: #FFFFFF !important; }
+        .stTabs [aria-selected="true"],
+        .stTabs [aria-selected="true"] * { color: #FFFFFF !important; }
+        .hero-header, .hero-header * { color: #FFFFFF !important; }
     }
 
     /* ============================================================
