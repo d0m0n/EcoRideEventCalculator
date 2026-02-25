@@ -5,7 +5,6 @@ import math
 import uuid
 import requests
 import re
-import base64
 from streamlit_gsheets import GSheetsConnection
 
 # --- 設定・定数 ---
@@ -67,16 +66,6 @@ _P_PARKING = (
     '<rect x="3" y="3" width="18" height="18" rx="2"/>'
     '<path d="M9 17V7h4.5a3.5 3.5 0 0 1 0 7H9"/>'
 )
-
-def _car_svg_b64(color="#1A2B1A"):
-    """_P_CAR SVGをbase64データURIに変換（Plotly add_layout_image用）"""
-    svg = (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" '
-        f'viewBox="0 0 24 24" fill="none" stroke="{color}" '
-        f'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
-        f'{_P_CAR}</svg>'
-    )
-    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
 
 
 # --- UI ヘルパー関数 ---
@@ -755,6 +744,25 @@ def split_car_info(car_str):
         return match.group(1).strip(), match.group(2).strip()
     return car_str, "-"
 
+def render_car_count_card(solo_cars, share_cars):
+    reduction = solo_cars - share_cars
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;justify-content:center;gap:28px;padding:10px 0 18px 0;">
+      <div style="text-align:center;line-height:1.1;">
+        <div style="font-size:13px;font-weight:600;color:#EF5350;letter-spacing:0.06em;margin-bottom:2px;">全員ソロ</div>
+        <div style="font-size:44px;font-weight:800;color:#EF5350;">{solo_cars}<span style="font-size:20px;font-weight:600;">台</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div style="font-size:22px;color:#888;">→</div>
+        <div style="font-size:13px;font-weight:700;color:#66BB6A;background:rgba(102,187,106,0.18);padding:3px 12px;border-radius:20px;white-space:nowrap;">▼ {reduction}台 削減</div>
+      </div>
+      <div style="text-align:center;line-height:1.1;">
+        <div style="font-size:13px;font-weight:600;color:#66BB6A;letter-spacing:0.06em;margin-bottom:2px;">相乗り</div>
+        <div style="font-size:44px;font-weight:800;color:#66BB6A;">{share_cars}<span style="font-size:20px;font-weight:600;">台</span></div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 def make_plotly_fig(chart_data):
     fig = px.bar(
         chart_data,
@@ -765,15 +773,11 @@ def make_plotly_fig(chart_data):
         text="CO2排出量 (kg)",
         template="plotly_white",
     )
-    max_co2 = chart_data["CO2排出量 (kg)"].max()
-    icon_h = max_co2 * 0.18
-    y_axis_max = max_co2 * 1.48
-
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         showlegend=False,
-        yaxis=dict(showgrid=True, gridcolor='rgba(200,230,201,0.6)', gridwidth=1, range=[0, y_axis_max]),
+        yaxis=dict(showgrid=True, gridcolor='rgba(200,230,201,0.6)', gridwidth=1),
         xaxis=dict(showgrid=False),
         font=dict(size=15, color="#1A2B1A"),
         margin=dict(t=20, b=10, l=10, r=10),
@@ -785,30 +789,6 @@ def make_plotly_fig(chart_data):
         textfont=dict(size=32, color='white'),
         marker=dict(line=dict(width=0), cornerradius=8),
     )
-    car_icon_src = _car_svg_b64("#66BB6A")
-    for i, (_, row) in enumerate(chart_data.iterrows()):
-        y_top = row["CO2排出量 (kg)"]
-        fig.add_layout_image(
-            source=car_icon_src,
-            xref="x", yref="y",
-            x=i,
-            y=y_top,
-            xanchor="center", yanchor="bottom",
-            sizex=0.3,
-            sizey=icon_h,
-            layer="above",
-        )
-        fig.add_annotation(
-            x=row["状況"],
-            y=y_top + icon_h,
-            text=f"<b>{int(row['台数'])}台</b>",
-            showarrow=False,
-            yanchor="bottom",
-            yshift=4,
-            font=dict(size=26, color="white"),
-            bgcolor="rgba(46, 125, 50, 0.75)",
-            borderpad=5,
-        )
     return fig
 
 
@@ -844,9 +824,9 @@ def show_live_monitor(current_event_id):
     chart_data = pd.DataFrame({
         "状況": ["全員ソロ移動", "相乗り移動"],
         "CO2排出量 (kg)": [total_solo/1000, total_share/1000],
-        "台数": [total_people, actual_cars],
     })
     st.plotly_chart(make_plotly_fig(chart_data), use_container_width=True)
+    render_car_count_card(total_people, actual_cars)
 
     st.markdown("#### 最新の参加者リスト")
     display_df = df_p[["name", "start_point", "people", "car_type", "distance"]].copy()
@@ -1047,9 +1027,9 @@ else:
                 chart_data = pd.DataFrame({
                     "状況": ["全員ソロ", "相乗り"],
                     "CO2排出量 (kg)": [total_solo/1000, total_share/1000],
-                    "台数": [total_people, actual_cars],
                 })
                 st.plotly_chart(make_plotly_fig(chart_data), use_container_width=True)
+                render_car_count_card(total_people, actual_cars)
 
                 st.markdown("#### 登録内容の修正・削除")
                 st.caption("リスト上の出発地はプライバシー保護のため市町村のみ表示されます。")
