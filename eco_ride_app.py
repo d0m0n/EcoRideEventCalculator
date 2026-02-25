@@ -785,7 +785,7 @@ def make_plotly_fig(chart_data):
         textfont=dict(size=32, color='white'),
         marker=dict(line=dict(width=0), cornerradius=8),
     )
-    car_icon_src = _car_svg_b64()
+    car_icon_src = _car_svg_b64("#66BB6A")
     for i, (_, row) in enumerate(chart_data.iterrows()):
         y_top = row["CO2排出量 (kg)"]
         fig.add_layout_image(
@@ -805,7 +805,9 @@ def make_plotly_fig(chart_data):
             showarrow=False,
             yanchor="bottom",
             yshift=4,
-            font=dict(size=20, color="#1A2B1A"),
+            font=dict(size=26, color="white"),
+            bgcolor="rgba(46, 125, 50, 0.75)",
+            borderpad=5,
         )
     return fig
 
