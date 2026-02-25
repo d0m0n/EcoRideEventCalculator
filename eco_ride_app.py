@@ -5,6 +5,7 @@ import math
 import uuid
 import requests
 import re
+import base64
 from streamlit_gsheets import GSheetsConnection
 
 # --- 設定・定数 ---
@@ -66,6 +67,16 @@ _P_PARKING = (
     '<rect x="3" y="3" width="18" height="18" rx="2"/>'
     '<path d="M9 17V7h4.5a3.5 3.5 0 0 1 0 7H9"/>'
 )
+
+def _car_svg_b64(color="#1A2B1A"):
+    """_P_CAR SVGをbase64データURIに変換（Plotly add_layout_image用）"""
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" '
+        f'viewBox="0 0 24 24" fill="none" stroke="{color}" '
+        f'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+        f'{_P_CAR}</svg>'
+    )
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
 
 
 # --- UI ヘルパー関数 ---
@@ -754,14 +765,18 @@ def make_plotly_fig(chart_data):
         text="CO2排出量 (kg)",
         template="plotly_white",
     )
+    max_co2 = chart_data["CO2排出量 (kg)"].max()
+    icon_h = max_co2 * 0.18
+    y_axis_max = max_co2 * 1.48
+
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         showlegend=False,
-        yaxis=dict(showgrid=True, gridcolor='rgba(200,230,201,0.6)', gridwidth=1),
+        yaxis=dict(showgrid=True, gridcolor='rgba(200,230,201,0.6)', gridwidth=1, range=[0, y_axis_max]),
         xaxis=dict(showgrid=False),
         font=dict(size=15, color="#1A2B1A"),
-        margin=dict(t=60, b=10, l=10, r=10),
+        margin=dict(t=20, b=10, l=10, r=10),
         bargap=0.35,
     )
     fig.update_traces(
@@ -770,15 +785,27 @@ def make_plotly_fig(chart_data):
         textfont=dict(size=32, color='white'),
         marker=dict(line=dict(width=0), cornerradius=8),
     )
-    for _, row in chart_data.iterrows():
+    car_icon_src = _car_svg_b64()
+    for i, (_, row) in enumerate(chart_data.iterrows()):
+        y_top = row["CO2排出量 (kg)"]
+        fig.add_layout_image(
+            source=car_icon_src,
+            xref="x", yref="y",
+            x=i,
+            y=y_top,
+            xanchor="center", yanchor="bottom",
+            sizex=0.3,
+            sizey=icon_h,
+            layer="above",
+        )
         fig.add_annotation(
             x=row["状況"],
-            y=row["CO2排出量 (kg)"],
-            text=f"🚗 {int(row['台数'])}台",
+            y=y_top + icon_h,
+            text=f"<b>{int(row['台数'])}台</b>",
             showarrow=False,
             yanchor="bottom",
-            yshift=8,
-            font=dict(size=16, color="#1A2B1A"),
+            yshift=4,
+            font=dict(size=20, color="#1A2B1A"),
         )
     return fig
 
