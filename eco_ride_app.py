@@ -761,7 +761,7 @@ def make_plotly_fig(chart_data):
         yaxis=dict(showgrid=True, gridcolor='rgba(200,230,201,0.6)', gridwidth=1),
         xaxis=dict(showgrid=False),
         font=dict(size=15, color="#1A2B1A"),
-        margin=dict(t=20, b=10, l=10, r=10),
+        margin=dict(t=60, b=10, l=10, r=10),
         bargap=0.35,
     )
     fig.update_traces(
@@ -770,6 +770,16 @@ def make_plotly_fig(chart_data):
         textfont=dict(size=32, color='white'),
         marker=dict(line=dict(width=0), cornerradius=8),
     )
+    for _, row in chart_data.iterrows():
+        fig.add_annotation(
+            x=row["状況"],
+            y=row["CO2排出量 (kg)"],
+            text=f"🚗 {int(row['台数'])}台",
+            showarrow=False,
+            yanchor="bottom",
+            yshift=8,
+            font=dict(size=16, color="#1A2B1A"),
+        )
     return fig
 
 
@@ -804,7 +814,8 @@ def show_live_monitor(current_event_id):
 
     chart_data = pd.DataFrame({
         "状況": ["全員ソロ移動", "相乗り移動"],
-        "CO2排出量 (kg)": [total_solo/1000, total_share/1000]
+        "CO2排出量 (kg)": [total_solo/1000, total_share/1000],
+        "台数": [total_people, actual_cars],
     })
     st.plotly_chart(make_plotly_fig(chart_data), use_container_width=True)
 
@@ -1006,7 +1017,8 @@ else:
 
                 chart_data = pd.DataFrame({
                     "状況": ["全員ソロ", "相乗り"],
-                    "CO2排出量 (kg)": [total_solo/1000, total_share/1000]
+                    "CO2排出量 (kg)": [total_solo/1000, total_share/1000],
+                    "台数": [total_people, actual_cars],
                 })
                 st.plotly_chart(make_plotly_fig(chart_data), use_container_width=True)
 
