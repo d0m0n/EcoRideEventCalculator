@@ -747,9 +747,9 @@ def split_car_info(car_str):
 def make_plotly_fig(chart_data):
     fig = px.bar(
         chart_data,
-        x="シナリオ",
+        x="状況",
         y="CO2排出量 (kg)",
-        color="シナリオ",
+        color="状況",
         color_discrete_sequence=["#EF5350", "#66BB6A"],
         text="CO2排出量 (kg)",
         template="plotly_white",
@@ -803,7 +803,7 @@ def show_live_monitor(current_event_id):
     st.caption("※ 杉の木換算：8.8 kg-CO₂/本/年（出典：林野庁「森林はどのぐらいの量の二酸化炭素を吸収しているの？」36〜40年生スギ人工林・1,000本/ha 基準）")
 
     chart_data = pd.DataFrame({
-        "シナリオ": ["全員ソロ移動", "相乗り移動"],
+        "状況": ["全員ソロ移動", "相乗り移動"],
         "CO2排出量 (kg)": [total_solo/1000, total_share/1000]
     })
     st.plotly_chart(make_plotly_fig(chart_data), use_container_width=True)
@@ -1005,7 +1005,7 @@ else:
                 st.caption("※ 杉の木換算：8.8 kg-CO₂/本/年（出典：林野庁「森林はどのぐらいの量の二酸化炭素を吸収しているの？」36〜40年生スギ人工林・1,000本/ha 基準）")
 
                 chart_data = pd.DataFrame({
-                    "シナリオ": ["全員ソロ", "相乗り"],
+                    "状況": ["全員ソロ", "相乗り"],
                     "CO2排出量 (kg)": [total_solo/1000, total_share/1000]
                 })
                 st.plotly_chart(make_plotly_fig(chart_data), use_container_width=True)
