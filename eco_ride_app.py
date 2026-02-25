@@ -749,7 +749,7 @@ def render_car_count_card(solo_cars, share_cars):
     st.markdown(f"""
     <div style="display:flex;align-items:center;justify-content:center;gap:28px;padding:10px 0 18px 0;">
       <div style="text-align:center;line-height:1.1;">
-        <div style="font-size:13px;font-weight:600;color:#EF5350;letter-spacing:0.06em;margin-bottom:2px;">全員ソロ</div>
+        <div style="font-size:13px;font-weight:600;color:#EF5350;letter-spacing:0.06em;margin-bottom:2px;">1人1台の場合</div>
         <div style="font-size:44px;font-weight:800;color:#EF5350;">{solo_cars}<span style="font-size:20px;font-weight:600;">台</span></div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
@@ -822,7 +822,7 @@ def show_live_monitor(current_event_id):
     st.caption("※ 杉の木換算：8.8 kg-CO₂/本/年（出典：林野庁「森林はどのぐらいの量の二酸化炭素を吸収しているの？」36〜40年生スギ人工林・1,000本/ha 基準）")
 
     chart_data = pd.DataFrame({
-        "状況": ["全員ソロ移動", "相乗り移動"],
+        "状況": ["1人1台の場合", "相乗り移動"],
         "CO2排出量 (kg)": [total_solo/1000, total_share/1000],
     })
     st.plotly_chart(make_plotly_fig(chart_data), use_container_width=True)
@@ -1025,7 +1025,7 @@ else:
                 st.caption("※ 杉の木換算：8.8 kg-CO₂/本/年（出典：林野庁「森林はどのぐらいの量の二酸化炭素を吸収しているの？」36〜40年生スギ人工林・1,000本/ha 基準）")
 
                 chart_data = pd.DataFrame({
-                    "状況": ["全員ソロ", "相乗り"],
+                    "状況": ["1人1台の場合", "相乗り"],
                     "CO2排出量 (kg)": [total_solo/1000, total_share/1000],
                 })
                 st.plotly_chart(make_plotly_fig(chart_data), use_container_width=True)
