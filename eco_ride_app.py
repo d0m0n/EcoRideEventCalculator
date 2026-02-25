@@ -793,13 +793,14 @@ def show_live_monitor(current_event_id):
 
     reduction_kg = (total_solo - total_share) / 1000
     occupancy_rate = total_people / actual_cars if actual_cars > 0 else 0
-    cedar_trees = reduction_kg / 14
+    cedar_trees = reduction_kg / 8.8  # 林野庁算定値: 8.8 kg-CO2/本/年（36〜40年生スギ人工林、1,000本/ha）
 
     render_metric_cards([
         {"icon": _icon(_P_LEAF,  36, "#2E7D32"), "value": f"{reduction_kg:.2f} kg-CO₂", "label": "みんなの総CO2削減量"},
         {"icon": _icon(_P_CAR,   36, "#2E7D32"), "value": f"{occupancy_rate:.2f} 人/台",  "label": "平均相乗り率"},
         {"icon": _icon(_P_TREE,  36, "#2E7D32"), "value": f"約 {cedar_trees:.1f} 本",      "label": "杉の木の年間吸収量相当"},
     ])
+    st.caption("※ 杉の木換算：8.8 kg-CO₂/本/年（出典：林野庁「森林はどのぐらいの量の二酸化炭素を吸収しているの？」36〜40年生スギ人工林・1,000本/ha 基準）")
 
     chart_data = pd.DataFrame({
         "シナリオ": ["全員ソロ移動", "相乗り移動"],
@@ -994,13 +995,14 @@ else:
 
                 reduction_kg = (total_solo - total_share) / 1000
                 occupancy_rate = total_people / actual_cars if actual_cars > 0 else 0
-                cedar_trees = reduction_kg / 14
+                cedar_trees = reduction_kg / 8.8  # 林野庁算定値: 8.8 kg-CO2/本/年（36〜40年生スギ人工林、1,000本/ha）
 
                 render_metric_cards([
                     {"icon": _icon(_P_LEAF,  36, "#2E7D32"), "value": f"{reduction_kg:.2f} kg", "label": "CO2削減量"},
                     {"icon": _icon(_P_CAR,   36, "#2E7D32"), "value": f"{occupancy_rate:.2f} 人/台", "label": "相乗り率"},
                     {"icon": _icon(_P_TREE,  36, "#2E7D32"), "value": f"約 {cedar_trees:.1f} 本",    "label": "杉の木の年間吸収量相当"},
                 ])
+                st.caption("※ 杉の木換算：8.8 kg-CO₂/本/年（出典：林野庁「森林はどのぐらいの量の二酸化炭素を吸収しているの？」36〜40年生スギ人工林・1,000本/ha 基準）")
 
                 chart_data = pd.DataFrame({
                     "シナリオ": ["全員ソロ", "相乗り"],
