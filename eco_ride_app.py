@@ -693,8 +693,14 @@ def inject_hc_css():
         border: 2.5px solid #000000 !important;
         box-shadow: none !important;
     }
-    .metric-card-value { color: #005500 !important; }
-    .metric-card-label { color: #333333 !important; }
+    @media (prefers-color-scheme: light) {
+        .metric-card-value { color: #000000 !important; }
+        .metric-card-label { color: #333333 !important; }
+    }
+    @media (prefers-color-scheme: dark) {
+        .metric-card-value { color: #FFFFFF !important; }
+        .metric-card-label { color: #CCCCCC !important; }
+    }
     .stButton > button,
     [data-testid="stFormSubmitButton"] > button,
     .stLinkButton > a {
