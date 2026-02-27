@@ -5,6 +5,8 @@ import math
 import uuid
 import requests
 import re
+import qrcode
+import io
 from streamlit_gsheets import GSheetsConnection
 
 # --- 設定・定数 ---
@@ -744,6 +746,16 @@ def split_car_info(car_str):
         return match.group(1).strip(), match.group(2).strip()
     return car_str, "-"
 
+def generate_qr_image(url: str):
+    qr = qrcode.QRCode(box_size=10, border=4)
+    qr.add_data(url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return buf
+
 def render_car_count_card(solo_cars, share_cars):
     reduction = solo_cars - share_cars
     st.markdown(f"""
@@ -964,110 +976,119 @@ else:
         st.sidebar.title("メニュー")
         app_mode = st.sidebar.radio("モード選択", ["参加登録・編集", "ライブモニター"], index=0)
 
-        if app_mode == "ライブモニター":
-            show_live_monitor(str(current_event_id))
+        col_main, col_qr = st.columns([3, 2])
 
-        else:
-            st.markdown("### 参加登録・編集モード")
+        event_url = f"https://ecorideeventcalculator-2vhvzkr7oenknbuegaremc.streamlit.app/?event_id={current_event_id}"
+        with col_qr:
+            with st.expander("QRコードを表示（参加者に読み取らせてください）", expanded=False):
+                st.image(generate_qr_image(event_url), use_container_width=True)
+                st.caption(f"参加登録URL：{event_url}")
 
-            st.sidebar.markdown("---")
-            st.sidebar.header("新規登録")
-            st.sidebar.markdown("##### 1. 出発地を検索")
-            search_query = st.sidebar.text_input("地名/駅名", key="search_box")
-            selected_address = None
-            if search_query:
-                suggestions = get_place_suggestions(search_query, MAPS_API_KEY)
-                if suggestions:
-                    options = [s["label"] for s in suggestions]
-                    selected_address = st.sidebar.selectbox("候補を選択", options)
-                else:
-                    st.sidebar.warning("候補なし")
+        with col_main:
+            if app_mode == "ライブモニター":
+                show_live_monitor(str(current_event_id))
 
-            st.sidebar.markdown("##### 2. 詳細登録")
-            with st.sidebar.form("join_form"):
-                start_val = selected_address if selected_address else ""
-                f_start = st.text_input("出発地(確定)", value=start_val)
-                f_name = st.text_input("名前/グループ名")
-                f_ppl = st.number_input("人数", 1, 10, 2)
-                f_car = st.selectbox("車種", list(CO2_EMISSION_FACTORS.keys()))
-                if st.form_submit_button("登録"):
-                    if f_start:
-                        with st.spinner("計算中..."):
-                            dist = get_distance(f_start, loc_addr, MAPS_API_KEY)
-                        if dist:
-                            append_to_sheet("participants", {
-                                "event_id": str(current_event_id), "name": f_name,
-                                "start_point": f_start, "distance": dist,
-                                "people": f_ppl, "car_type": f_car
-                            })
-                            st.success("登録しました！")
-                            st.rerun()
-                        else:
-                            st.error("場所不明")
-                    else:
-                        st.error("出発地を入力してください")
-
-            all_p = load_sheet("participants")
-            total_solo, total_share, actual_cars, total_people, df_p = calculate_stats(all_p, current_event_id)
-
-            if not df_p.empty:
-                st.markdown('<hr class="section-divider">', unsafe_allow_html=True)
-
-                reduction_kg = (total_solo - total_share) / 1000
-                occupancy_rate = total_people / actual_cars if actual_cars > 0 else 0
-                cedar_trees = reduction_kg / 8.8  # 林野庁算定値: 8.8 kg-CO2/本/年（36〜40年生スギ人工林、1,000本/ha）
-
-                render_metric_cards([
-                    {"icon": _icon(_P_LEAF,  36, "#2E7D32"), "value": f"{reduction_kg:.2f} kg", "label": "CO2削減量"},
-                    {"icon": _icon(_P_CAR,   36, "#2E7D32"), "value": f"{occupancy_rate:.2f} 人/台", "label": "相乗り率"},
-                    {"icon": _icon(_P_TREE,  36, "#2E7D32"), "value": f"約 {cedar_trees:.1f} 本",    "label": "杉の木の年間吸収量相当"},
-                ])
-                st.caption("※ 杉の木換算：8.8 kg-CO₂/本/年（出典：林野庁「森林はどのぐらいの量の二酸化炭素を吸収しているの？」36〜40年生スギ人工林・1,000本/ha 基準）")
-
-                chart_data = pd.DataFrame({
-                    "状況": ["1人1台の場合", "相乗り"],
-                    "CO2排出量 (kg)": [total_solo/1000, total_share/1000],
-                })
-                st.plotly_chart(make_plotly_fig(chart_data), use_container_width=True)
-                render_car_count_card(total_people, actual_cars)
-
-                st.markdown("#### 登録内容の修正・削除")
-                st.caption("リスト上の出発地はプライバシー保護のため市町村のみ表示されます。")
-
-                car_keys = list(CO2_EMISSION_FACTORS.keys())
-                for idx, row in df_p[::-1].iterrows():
-                    o_idx = row['original_index']
-                    safe_address = get_city_level_address(row['start_point'])
-                    c_name, c_eff = split_car_info(row['car_type'])
-                    title_str = f"{row['name']}  ({safe_address} | {c_name} | {row['people']}名)"
-
-                    with st.expander(title_str):
-                        with st.form(f"edit_{o_idx}"):
-                            c1, c2 = st.columns(2)
-                            with c1:
-                                p_n = st.text_input("名前/グループ名", value=row['name'])
-                                p_p = st.number_input("人数", 1, 10, int(row['people']))
-                                current_car = row['car_type']
-                                car_idx = car_keys.index(current_car) if current_car in car_keys else 0
-                                p_c = st.selectbox("車種", car_keys, index=car_idx)
-                            with c2:
-                                p_s = st.text_input("出発地", value=row['start_point'])
-                                p_d = st.number_input("距離 (km)", value=float(row['distance']))
-
-                            b1, b2 = st.columns(2)
-                            if b1.form_submit_button("保存", use_container_width=True):
-                                all_p.at[o_idx, 'name'] = p_n
-                                all_p.at[o_idx, 'people'] = p_p
-                                all_p.at[o_idx, 'car_type'] = p_c
-                                all_p.at[o_idx, 'start_point'] = p_s
-                                all_p.at[o_idx, 'distance'] = p_d
-                                update_sheet_data("participants", all_p.drop(columns=['original_index']))
-                                st.rerun()
-                            if b2.form_submit_button("削除", type="primary", use_container_width=True):
-                                update_sheet_data("participants", all_p.drop(index=o_idx).drop(columns=['original_index']))
-                                st.rerun()
             else:
-                st.info("参加者なし")
+                st.markdown("### 参加登録・編集モード")
+
+                st.sidebar.markdown("---")
+                st.sidebar.header("新規登録")
+                st.sidebar.markdown("##### 1. 出発地を検索")
+                search_query = st.sidebar.text_input("地名/駅名", key="search_box")
+                selected_address = None
+                if search_query:
+                    suggestions = get_place_suggestions(search_query, MAPS_API_KEY)
+                    if suggestions:
+                        options = [s["label"] for s in suggestions]
+                        selected_address = st.sidebar.selectbox("候補を選択", options)
+                    else:
+                        st.sidebar.warning("候補なし")
+
+                st.sidebar.markdown("##### 2. 詳細登録")
+                with st.sidebar.form("join_form"):
+                    start_val = selected_address if selected_address else ""
+                    f_start = st.text_input("出発地(確定)", value=start_val)
+                    f_name = st.text_input("名前/グループ名")
+                    f_ppl = st.number_input("人数", 1, 10, 2)
+                    f_car = st.selectbox("車種", list(CO2_EMISSION_FACTORS.keys()))
+                    if st.form_submit_button("登録"):
+                        if f_start:
+                            with st.spinner("計算中..."):
+                                dist = get_distance(f_start, loc_addr, MAPS_API_KEY)
+                            if dist:
+                                append_to_sheet("participants", {
+                                    "event_id": str(current_event_id), "name": f_name,
+                                    "start_point": f_start, "distance": dist,
+                                    "people": f_ppl, "car_type": f_car
+                                })
+                                st.success("登録しました！")
+                                st.rerun()
+                            else:
+                                st.error("場所不明")
+                        else:
+                            st.error("出発地を入力してください")
+
+                all_p = load_sheet("participants")
+                total_solo, total_share, actual_cars, total_people, df_p = calculate_stats(all_p, current_event_id)
+
+                if not df_p.empty:
+                    st.markdown('<hr class="section-divider">', unsafe_allow_html=True)
+
+                    reduction_kg = (total_solo - total_share) / 1000
+                    occupancy_rate = total_people / actual_cars if actual_cars > 0 else 0
+                    cedar_trees = reduction_kg / 8.8  # 林野庁算定値: 8.8 kg-CO2/本/年（36〜40年生スギ人工林、1,000本/ha）
+
+                    render_metric_cards([
+                        {"icon": _icon(_P_LEAF,  36, "#2E7D32"), "value": f"{reduction_kg:.2f} kg", "label": "CO2削減量"},
+                        {"icon": _icon(_P_CAR,   36, "#2E7D32"), "value": f"{occupancy_rate:.2f} 人/台", "label": "相乗り率"},
+                        {"icon": _icon(_P_TREE,  36, "#2E7D32"), "value": f"約 {cedar_trees:.1f} 本",    "label": "杉の木の年間吸収量相当"},
+                    ])
+                    st.caption("※ 杉の木換算：8.8 kg-CO₂/本/年（出典：林野庁「森林はどのぐらいの量の二酸化炭素を吸収しているの？」36〜40年生スギ人工林・1,000本/ha 基準）")
+
+                    chart_data = pd.DataFrame({
+                        "状況": ["1人1台の場合", "相乗り"],
+                        "CO2排出量 (kg)": [total_solo/1000, total_share/1000],
+                    })
+                    st.plotly_chart(make_plotly_fig(chart_data), use_container_width=True)
+                    render_car_count_card(total_people, actual_cars)
+
+                    st.markdown("#### 登録内容の修正・削除")
+                    st.caption("リスト上の出発地はプライバシー保護のため市町村のみ表示されます。")
+
+                    car_keys = list(CO2_EMISSION_FACTORS.keys())
+                    for idx, row in df_p[::-1].iterrows():
+                        o_idx = row['original_index']
+                        safe_address = get_city_level_address(row['start_point'])
+                        c_name, c_eff = split_car_info(row['car_type'])
+                        title_str = f"{row['name']}  ({safe_address} | {c_name} | {row['people']}名)"
+
+                        with st.expander(title_str):
+                            with st.form(f"edit_{o_idx}"):
+                                c1, c2 = st.columns(2)
+                                with c1:
+                                    p_n = st.text_input("名前/グループ名", value=row['name'])
+                                    p_p = st.number_input("人数", 1, 10, int(row['people']))
+                                    current_car = row['car_type']
+                                    car_idx = car_keys.index(current_car) if current_car in car_keys else 0
+                                    p_c = st.selectbox("車種", car_keys, index=car_idx)
+                                with c2:
+                                    p_s = st.text_input("出発地", value=row['start_point'])
+                                    p_d = st.number_input("距離 (km)", value=float(row['distance']))
+
+                                b1, b2 = st.columns(2)
+                                if b1.form_submit_button("保存", use_container_width=True):
+                                    all_p.at[o_idx, 'name'] = p_n
+                                    all_p.at[o_idx, 'people'] = p_p
+                                    all_p.at[o_idx, 'car_type'] = p_c
+                                    all_p.at[o_idx, 'start_point'] = p_s
+                                    all_p.at[o_idx, 'distance'] = p_d
+                                    update_sheet_data("participants", all_p.drop(columns=['original_index']))
+                                    st.rerun()
+                                if b2.form_submit_button("削除", type="primary", use_container_width=True):
+                                    update_sheet_data("participants", all_p.drop(index=o_idx).drop(columns=['original_index']))
+                                    st.rerun()
+                else:
+                    st.info("参加者なし")
 
         st.markdown('<hr class="section-divider">', unsafe_allow_html=True)
         if st.button("管理者用トップページに戻る"):
