@@ -69,6 +69,36 @@ _P_PARKING = (
     '<path d="M9 17V7h4.5a3.5 3.5 0 0 1 0 7H9"/>'
 )
 
+# --- カラーテーマ ---
+_C = {
+    "normal": {
+        "bar_solo":   "#EF5350",
+        "bar_share":  "#66BB6A",
+        "bar_text":   "white",
+        "grid":       "rgba(200,230,201,0.6)",
+        "chart_font": "#1A2B1A",
+        "car_solo":   "#EF5350",
+        "car_share":  "#66BB6A",
+        "car_arrow":  "#888",
+        "reduce_txt": "#66BB6A",
+        "reduce_bg":  "rgba(102,187,106,0.18)",
+        "icon":       "#2E7D32",
+    },
+    "hc": {
+        "bar_solo":   "#CC0000",
+        "bar_share":  "#005500",
+        "bar_text":   "white",
+        "grid":       "rgba(0,0,0,0.4)",
+        "chart_font": "#000000",
+        "car_solo":   "#CC0000",
+        "car_share":  "#005500",
+        "car_arrow":  "#000000",
+        "reduce_txt": "#FFFFFF",
+        "reduce_bg":  "rgba(0,100,0,0.9)",
+        "icon":       "#005500",
+    },
+}
+
 
 # --- UI ヘルパー関数 ---
 
@@ -618,6 +648,101 @@ def inject_css():
     """, unsafe_allow_html=True)
 
 
+def inject_hc_css():
+    st.markdown("""
+    <style>
+    /* ===== ハイコントラストモード上書き ===== */
+    body, .stApp,
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMain"],
+    [data-testid="block-container"] {
+        background: #FFFFFF !important;
+        background-image: none !important;
+    }
+    [data-testid="stHeader"] {
+        background: #FFFFFF !important;
+        border-bottom: 3px solid #000000 !important;
+    }
+    [data-testid="stSidebar"] {
+        background: #F0F0F0 !important;
+        background-image: none !important;
+        border-right: 3px solid #000000 !important;
+        box-shadow: none !important;
+    }
+    .stApp *, p, span, div, label,
+    [data-testid="stMarkdownContainer"],
+    [data-testid="stCaptionContainer"],
+    [data-testid="stSidebar"] * {
+        color: #000000 !important;
+    }
+    .hero-header {
+        background: #005500 !important;
+        background-image: none !important;
+    }
+    .hero-header *, .hero-title, .hero-subtitle {
+        color: #FFFFFF !important;
+    }
+    .live-badge {
+        background: rgba(204,0,0,0.12) !important;
+        border: 1.5px solid #CC0000 !important;
+    }
+    .live-badge, .live-badge * { color: #CC0000 !important; }
+    .live-dot { background: #CC0000 !important; }
+    .metric-card {
+        background: #FFFFFF !important;
+        border: 2.5px solid #000000 !important;
+        box-shadow: none !important;
+    }
+    .metric-card-value { color: #005500 !important; }
+    .metric-card-label { color: #333333 !important; }
+    .stButton > button,
+    [data-testid="stFormSubmitButton"] > button,
+    .stLinkButton > a {
+        background: #005500 !important;
+        background-image: none !important;
+        color: #FFFFFF !important;
+        border: 2px solid #000000 !important;
+        box-shadow: none !important;
+    }
+    .stButton > button *, [data-testid="stFormSubmitButton"] > button *,
+    .stLinkButton > a * { color: #FFFFFF !important; }
+    .stButton > button[kind="primary"],
+    [data-testid="stFormSubmitButton"] > button[kind="primary"] {
+        background: #990000 !important;
+        background-image: none !important;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        background: #FFFFFF !important;
+        border: 2px solid #000000 !important;
+        box-shadow: none !important;
+    }
+    .stTabs [data-baseweb="tab"] { color: #000000 !important; }
+    .stTabs [aria-selected="true"] {
+        background: #005500 !important;
+        background-image: none !important;
+        box-shadow: none !important;
+    }
+    .stTabs [aria-selected="true"] * { color: #FFFFFF !important; }
+    [data-testid="stExpander"] {
+        background: #FFFFFF !important;
+        border: 2px solid #000000 !important;
+        box-shadow: none !important;
+    }
+    [data-testid="stVerticalBlockBorderWrapper"] > div {
+        background: #FFFFFF !important;
+        border: 2.5px solid #000000 !important;
+        box-shadow: none !important;
+    }
+    .stTextInput input, .stNumberInput input {
+        background: #FFFFFF !important;
+        color: #000000 !important;
+        border: 2px solid #000000 !important;
+    }
+    .section-divider { border-top: 3px solid #000000 !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
+
 def render_hero_header(icon_svg: str, title: str, subtitle: str) -> None:
     st.markdown(f"""
     <div class="hero-header">
@@ -756,32 +881,36 @@ def generate_qr_image(url: str):
     buf.seek(0)
     return buf
 
-def render_car_count_card(solo_cars, share_cars):
+def render_car_count_card(solo_cars, share_cars, c=None):
+    if c is None:
+        c = _C["normal"]
     reduction = solo_cars - share_cars
     st.markdown(f"""
     <div style="display:flex;align-items:center;justify-content:center;gap:28px;padding:10px 0 18px 0;">
       <div style="text-align:center;line-height:1.1;">
-        <div style="font-size:13px;font-weight:600;color:#EF5350;letter-spacing:0.06em;margin-bottom:2px;">1人1台の場合</div>
-        <div style="font-size:44px;font-weight:800;color:#EF5350;">{solo_cars}<span style="font-size:20px;font-weight:600;">台</span></div>
+        <div style="font-size:13px;font-weight:600;color:{c['car_solo']};letter-spacing:0.06em;margin-bottom:2px;">1人1台の場合</div>
+        <div style="font-size:44px;font-weight:800;color:{c['car_solo']};">{solo_cars}<span style="font-size:20px;font-weight:600;">台</span></div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-        <div style="font-size:22px;color:#888;">→</div>
-        <div style="font-size:13px;font-weight:700;color:#66BB6A;background:rgba(102,187,106,0.18);padding:3px 12px;border-radius:20px;white-space:nowrap;">▼ {reduction}台 削減</div>
+        <div style="font-size:22px;color:{c['car_arrow']};">→</div>
+        <div style="font-size:13px;font-weight:700;color:{c['reduce_txt']};background:{c['reduce_bg']};padding:3px 12px;border-radius:20px;white-space:nowrap;">▼ {reduction}台 削減</div>
       </div>
       <div style="text-align:center;line-height:1.1;">
-        <div style="font-size:13px;font-weight:600;color:#66BB6A;letter-spacing:0.06em;margin-bottom:2px;">相乗り</div>
-        <div style="font-size:44px;font-weight:800;color:#66BB6A;">{share_cars}<span style="font-size:20px;font-weight:600;">台</span></div>
+        <div style="font-size:13px;font-weight:600;color:{c['car_share']};letter-spacing:0.06em;margin-bottom:2px;">相乗り</div>
+        <div style="font-size:44px;font-weight:800;color:{c['car_share']};">{share_cars}<span style="font-size:20px;font-weight:600;">台</span></div>
       </div>
     </div>
     """, unsafe_allow_html=True)
 
-def make_plotly_fig(chart_data):
+def make_plotly_fig(chart_data, c=None):
+    if c is None:
+        c = _C["normal"]
     fig = px.bar(
         chart_data,
         x="状況",
         y="CO2排出量 (kg)",
         color="状況",
-        color_discrete_sequence=["#EF5350", "#66BB6A"],
+        color_discrete_sequence=[c["bar_solo"], c["bar_share"]],
         text="CO2排出量 (kg)",
         template="plotly_white",
     )
@@ -789,16 +918,16 @@ def make_plotly_fig(chart_data):
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         showlegend=False,
-        yaxis=dict(showgrid=True, gridcolor='rgba(200,230,201,0.6)', gridwidth=1),
+        yaxis=dict(showgrid=True, gridcolor=c["grid"], gridwidth=1),
         xaxis=dict(showgrid=False),
-        font=dict(size=15, color="#1A2B1A"),
+        font=dict(size=15, color=c["chart_font"]),
         margin=dict(t=20, b=10, l=10, r=10),
         bargap=0.35,
     )
     fig.update_traces(
         texttemplate='<b>%{y:.1f} kg</b>',
         textposition='inside',
-        textfont=dict(size=32, color='white'),
+        textfont=dict(size=32, color=c["bar_text"]),
         marker=dict(line=dict(width=0), cornerradius=8),
     )
     return fig
@@ -826,10 +955,11 @@ def show_live_monitor(current_event_id):
     occupancy_rate = total_people / actual_cars if actual_cars > 0 else 0
     cedar_trees = reduction_kg / 8.8  # 林野庁算定値: 8.8 kg-CO2/本/年（36〜40年生スギ人工林、1,000本/ha）
 
+    c = _C["hc"] if st.session_state.get("hc_mode", False) else _C["normal"]
     render_metric_cards([
-        {"icon": _icon(_P_LEAF,  36, "#2E7D32"), "value": f"{reduction_kg:.2f} kg-CO₂", "label": "みんなの総CO2削減量"},
-        {"icon": _icon(_P_CAR,   36, "#2E7D32"), "value": f"{occupancy_rate:.2f} 人/台",  "label": "平均相乗り率"},
-        {"icon": _icon(_P_TREE,  36, "#2E7D32"), "value": f"約 {cedar_trees:.1f} 本",      "label": "杉の木の年間吸収量相当"},
+        {"icon": _icon(_P_LEAF,  36, c["icon"]), "value": f"{reduction_kg:.2f} kg-CO₂", "label": "みんなの総CO2削減量"},
+        {"icon": _icon(_P_CAR,   36, c["icon"]), "value": f"{occupancy_rate:.2f} 人/台",  "label": "平均相乗り率"},
+        {"icon": _icon(_P_TREE,  36, c["icon"]), "value": f"約 {cedar_trees:.1f} 本",      "label": "杉の木の年間吸収量相当"},
     ])
     st.caption("※ 杉の木換算：8.8 kg-CO₂/本/年（出典：林野庁「森林はどのぐらいの量の二酸化炭素を吸収しているの？」36〜40年生スギ人工林・1,000本/ha 基準）")
 
@@ -837,8 +967,8 @@ def show_live_monitor(current_event_id):
         "状況": ["1人1台の場合", "相乗り移動"],
         "CO2排出量 (kg)": [total_solo/1000, total_share/1000],
     })
-    st.plotly_chart(make_plotly_fig(chart_data), use_container_width=True)
-    render_car_count_card(total_people, actual_cars)
+    st.plotly_chart(make_plotly_fig(chart_data, c), use_container_width=True)
+    render_car_count_card(total_people, actual_cars, c)
 
     st.markdown("#### 最新の参加者リスト")
     display_df = df_p[["name", "start_point", "people", "car_type", "distance"]].copy()
@@ -853,8 +983,20 @@ def show_live_monitor(current_event_id):
 
 # --- メイン処理 ---
 
+if "hc_mode" not in st.session_state:
+    st.session_state.hc_mode = False
+
 inject_css()
+if st.session_state.hc_mode:
+    inject_hc_css()
 inject_head_icons()
+
+st.sidebar.markdown("---")
+st.session_state.hc_mode = st.sidebar.toggle(
+    "ハイコントラストモード",
+    value=st.session_state.hc_mode,
+    help="プロジェクター投影時など視認性を最大化したい場合にオンにしてください",
+)
 
 query_params = st.query_params
 current_event_id = query_params.get("event_id", None)
@@ -980,7 +1122,7 @@ else:
 
         event_url = f"https://ecorideeventcalculator-2vhvzkr7oenknbuegaremc.streamlit.app/?event_id={current_event_id}"
         with col_qr:
-            with st.expander("QRコードを表示（参加者に読み取らせてください）", expanded=False):
+            with st.expander("QRコードを表示", expanded=False):
                 st.image(generate_qr_image(event_url), use_container_width=True)
                 st.caption(f"参加登録URL：{event_url}")
 
@@ -1038,10 +1180,11 @@ else:
                     occupancy_rate = total_people / actual_cars if actual_cars > 0 else 0
                     cedar_trees = reduction_kg / 8.8  # 林野庁算定値: 8.8 kg-CO2/本/年（36〜40年生スギ人工林、1,000本/ha）
 
+                    c = _C["hc"] if st.session_state.get("hc_mode", False) else _C["normal"]
                     render_metric_cards([
-                        {"icon": _icon(_P_LEAF,  36, "#2E7D32"), "value": f"{reduction_kg:.2f} kg", "label": "CO2削減量"},
-                        {"icon": _icon(_P_CAR,   36, "#2E7D32"), "value": f"{occupancy_rate:.2f} 人/台", "label": "相乗り率"},
-                        {"icon": _icon(_P_TREE,  36, "#2E7D32"), "value": f"約 {cedar_trees:.1f} 本",    "label": "杉の木の年間吸収量相当"},
+                        {"icon": _icon(_P_LEAF,  36, c["icon"]), "value": f"{reduction_kg:.2f} kg", "label": "CO2削減量"},
+                        {"icon": _icon(_P_CAR,   36, c["icon"]), "value": f"{occupancy_rate:.2f} 人/台", "label": "相乗り率"},
+                        {"icon": _icon(_P_TREE,  36, c["icon"]), "value": f"約 {cedar_trees:.1f} 本",    "label": "杉の木の年間吸収量相当"},
                     ])
                     st.caption("※ 杉の木換算：8.8 kg-CO₂/本/年（出典：林野庁「森林はどのぐらいの量の二酸化炭素を吸収しているの？」36〜40年生スギ人工林・1,000本/ha 基準）")
 
@@ -1049,8 +1192,8 @@ else:
                         "状況": ["1人1台の場合", "相乗り"],
                         "CO2排出量 (kg)": [total_solo/1000, total_share/1000],
                     })
-                    st.plotly_chart(make_plotly_fig(chart_data), use_container_width=True)
-                    render_car_count_card(total_people, actual_cars)
+                    st.plotly_chart(make_plotly_fig(chart_data, c), use_container_width=True)
+                    render_car_count_card(total_people, actual_cars, c)
 
                     st.markdown("#### 登録内容の修正・削除")
                     st.caption("リスト上の出発地はプライバシー保護のため市町村のみ表示されます。")
