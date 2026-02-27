@@ -137,7 +137,7 @@ def inject_css():
     .block-container {
         padding-top: 2rem !important;
         padding-bottom: 2rem !important;
-        max-width: 1100px !important;
+        max-width: 1600px !important;
     }
 
     /* ===== ボタン（モード共通） ===== */
